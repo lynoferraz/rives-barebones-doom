@@ -4,9 +4,10 @@
 #include <cstdio>  // std::fprintf/stderr
 #include <cstdlib> // std::strerror
 #include <cstring> // std::strerror
+#include <fstream> // file stream operations
 #include <iomanip> // Required for std::hex, std::setw, std::setfill
 #include <sstream> // Required for std::stringstream
-// #include <string>  // for string class
+#include <string>  // for string class
 
 #include <array> // std::array
 #include <tuple> // std::ignore
@@ -41,10 +42,9 @@ typedef struct bytes32 {
   uint8_t data[BYTES32_SIZE];
 } bytes32_t;
 
-// bool operator==(const bytes32_t &a, const bytes32_t &b) {
-//   return std::equal(std::begin(a.data), std::end(a.data),
-//   std::begin(b.data));
-// }
+bool operator==(const bytes32_t &a, const bytes32_t &b) {
+  return std::equal(std::begin(a.data), std::end(a.data), std::begin(b.data));
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Rollup utilities.
@@ -175,6 +175,7 @@ handle_status process_verification(const cmt_rollup_advance_t &input) {
         std::fprintf(stderr, "[rives] invalid payload size: too large\n");
     return STATUS_INPUT_ERROR;
   }
+
   // Step 2: Validate gameplay log
   // Step 2.1: get user address and convert to hex to use as entropy
   std::stringstream msg_sender_ss;
@@ -187,7 +188,8 @@ handle_status process_verification(const cmt_rollup_advance_t &input) {
                              msg_sender_ss.str().c_str());
 
   // Step 2.2: save gameplay log in temp file
-  // Write the content to the temporary file
+
+  // Write the gameplay log to the temporary file
   char gameplay_log_filepath[TEMPFILE_SIZE + 1] = "/run/tmpXXXXXX";
   int gameplay_log_fd = mkstemp(gameplay_log_filepath);
 
@@ -231,20 +233,6 @@ handle_status process_verification(const cmt_rollup_advance_t &input) {
   } else if (pid == 0) {
     // child
 
-    // run_args = []
-    // run_args.append("/rivos/usr/sbin/riv-chroot")
-    // run_args.append("/rivos")
-    // run_args.extend(["--setenv", "RIV_CARTRIDGE", cartridge_path])
-    // run_args.extend(["--setenv", "RIV_REPLAYLOG", log_path])
-    // run_args.extend(["--setenv", "RIV_OUTCARD", outcard_path])th])
-    // run_args.extend(["--setenv", "RIV_OUTHASH", outhash_path])
-    // run_args.extend(["--setenv", "RIV_NO_YIELD", "y"])
-    // run_args.extend(["--setenv", "RIV_ENTROPY", f"{entropy}"])
-    // run_args.append("riv-run")
-    // if riv_args is not None and len(riv_args) > 0:
-    //     run_args.extend(riv_args.split())
-    // result = subprocess.run(run_args)
-
     std::ignore = std::fprintf(
         stdout,
         "[rives] full cmd: /rivos/usr/sbin/riv-chroot /rivos --setenv "
@@ -278,14 +266,51 @@ handle_status process_verification(const cmt_rollup_advance_t &input) {
   std::ignore = std::fprintf(stdout, "[rives] wait status: %d (%d, %d)\n",
                              status, WIFEXITED(status), WEXITSTATUS(status));
 
-  if (!WIFEXITED(status) || WEXITSTATUS(status) == STATUS_SUCCESS) {
+  if (!WIFEXITED(status) || WEXITSTATUS(status) != STATUS_SUCCESS) {
     // remove the file even on error
     std::ignore = unlink(gameplay_log_filepath);
     std::ignore = unlink(outcard_filepath);
     std::ignore = unlink(outhash_filepath);
-    return static_cast<handle_status>(WEXITSTATUS(status));
+    return STATUS_VERIFICATION_ERROR;
   }
   // Step 3: get outhash and compare with input outhash
+  std::ifstream outhash_file(outhash_filepath);
+  if (!outhash_file.is_open()) {
+    std::ignore = std::fprintf(stderr, "[rives] error opening id file\n");
+    // remove the file even on error
+    std::ignore = unlink(gameplay_log_filepath);
+    std::ignore = unlink(outcard_filepath);
+    std::ignore = unlink(outhash_filepath);
+    return STATUS_FILE_ERROR;
+  }
+  std::string outhash_hex_str;
+  std::getline(outhash_file, outhash_hex_str);
+  outhash_file.close();
+
+  bytes32_t verification_outhash;
+  bytes32_t payload_outhash;
+  const uint8_t *payload_data =
+      reinterpret_cast<const uint8_t *>(input.payload.data);
+  // Loop through the hex string, two characters at a time
+  for (size_t i = 0; i < BYTES32_SIZE; i += 1) {
+    std::string byteString = outhash_hex_str.substr(2 * i, 2);
+    uint8_t byteValue =
+        static_cast<uint8_t>(std::stoi(byteString, nullptr, 16));
+    verification_outhash.data[i] = byteValue;
+    payload_outhash.data[i] = payload_data[i];
+  }
+
+  if (!(payload_outhash == verification_outhash)) {
+    std::ignore = std::fprintf(
+        stderr, "[rives] error outhash mismatch (verification outhash %s)\n",
+        outhash_hex_str.c_str());
+    // remove the file even on error
+    std::ignore = unlink(gameplay_log_filepath);
+    std::ignore = unlink(outcard_filepath);
+    std::ignore = unlink(outhash_filepath);
+    return STATUS_OUTHASH_ERROR;
+  }
+
   // Step 4: Get outcard and extract score
   // Step 5: cleanup temp files
   std::ignore = unlink(gameplay_log_filepath);

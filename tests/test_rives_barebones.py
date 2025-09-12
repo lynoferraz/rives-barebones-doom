@@ -148,6 +148,44 @@ def test_should_fail_submit_long_gameplay2(
     report_code = hex2562uint(report)
     assert report_code == STATUS_INPUT_ERROR
 
+def test_should_submit_invalid_gameplay(
+        app_client: TestClient,
+        nop_gameplay_payload: Payload):
+
+    nop_gameplay_payload.gameplay_log = b'\x00' + nop_gameplay_payload.gameplay_log
+    hex_payload = bytes2hex(abi.encode_model(nop_gameplay_payload,True))
+
+    last_notice_n = len(app_client.rollup.notices)
+    last_report_n = len(app_client.rollup.reports)
+    app_client.send_advance(hex_payload=hex_payload)
+
+    assert app_client.rollup.status # No reverts
+    assert len(app_client.rollup.notices) == last_notice_n
+    assert len(app_client.rollup.reports) == last_report_n + 1
+
+    report = app_client.rollup.reports[-1]['data']['payload']
+    report_code = hex2562uint(report)
+    assert report_code == STATUS_VERIFICATION_ERROR
+
+def test_should_submit_invalid_outhash(
+        app_client: TestClient,
+        nop_gameplay_payload: Payload):
+
+    nop_gameplay_payload.outhash = NOP_GAMEPLAY_OUTHASH[:31] + b'\x00'
+    hex_payload = bytes2hex(abi.encode_model(nop_gameplay_payload,True))
+
+    last_notice_n = len(app_client.rollup.notices)
+    last_report_n = len(app_client.rollup.reports)
+    app_client.send_advance(hex_payload=hex_payload)
+
+    assert app_client.rollup.status # No reverts
+    assert len(app_client.rollup.notices) == last_notice_n
+    assert len(app_client.rollup.reports) == last_report_n + 1
+
+    report = app_client.rollup.reports[-1]['data']['payload']
+    report_code = hex2562uint(report)
+    assert report_code == STATUS_OUTHASH_ERROR
+
 def test_should_submit_nop_gameplay(
         app_client: TestClient,
         nop_gameplay_payload: Payload):
