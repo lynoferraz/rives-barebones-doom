@@ -1,0 +1,23 @@
+[machine]
+ram-length = "128Mi"
+user = "root"
+entrypoint = "exec /mnt/app/rives-barebones"
+
+[drives.root]
+builder = "docker"
+dockerfile = "rootfs.dockerfile"
+format = "ext2"
+avoid-overwrite = "true"
+extra-size = "2Mb"
+
+[drives.app]
+builder = "docker"
+dockerfile = "app.dockerfile"
+format = "sqfs"
+user = "app"
+
+[drives.merkle]
+builder = "empty"
+size = "32Kb"
+format = "ext2"
+user = "app"

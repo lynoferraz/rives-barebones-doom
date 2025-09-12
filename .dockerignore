@@ -1,0 +1,6 @@
+__pycache__
+tests
+README.md
+cartesi.toml
+.*
+*.dockerfile
