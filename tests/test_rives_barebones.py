@@ -3,7 +3,7 @@ from pydantic import BaseModel
 
 from cartesi import abi
 
-from cartesapp.utils import bytes2hex, hex2562uint
+from cartesapp.utils import bytes2hex, hex2562uint, hex2bytes
 from cartesapp.testclient import TestClient
 
 # Status codes
@@ -14,8 +14,9 @@ STATUS_VERIFICATION_ERROR = 3
 STATUS_OUTHASH_ERROR = 4
 STATUS_FILE_ERROR = 5
 STATUS_FORK_ERROR = 6
+STATUS_OUTCARD_ERROR = 7
 
-# USER1 = "0xdeadbeef7dc51b33c9a3e4a21ae053daa1872810"
+USER1 = "0xdeadbeef7dc51b33c9a3e4a21ae053daa1872810"
 NOP_GAMEPLAY_OUTHASH = b'\xe0\x85Y9\xb7\xb7F\xe5\xc5T\xe9!\xd5\xcb3_\xa1+528v\xc6\x9d\x0e\x03\xe6\x85\xa0{\xb8b'
 NOP_GAMEPLAY_LOG = b'\x01\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0f\x00\x00\x00'
 # score = 99983
@@ -31,6 +32,13 @@ USER2_GAMEPLAY_OUTHASH = b'\xac\x1c\x18\x0c\xce>\x15\xf0J*\x92\xeb\xae\xae\x17MV
 class Payload(BaseModel):
     outhash: abi.Bytes32
     gameplay_log: abi.Bytes
+
+# outputs
+class VerificationNotice(BaseModel):
+    user: abi.Address
+    timestamp: abi.UInt256
+    score: abi.Int256
+    input_index: abi.UInt256
 
 ###
 # Tests
@@ -197,12 +205,15 @@ def test_should_submit_nop_gameplay(
     app_client.send_advance(hex_payload=hex_payload)
 
     assert app_client.rollup.status # No reverts
-    assert len(app_client.rollup.notices) == last_notice_n # + 1
+    assert len(app_client.rollup.notices) == last_notice_n + 1
     assert len(app_client.rollup.reports) == last_report_n
 
-
     # validate notice
-    # score = 99983
+    notice = app_client.rollup.notices[-1]['data']['payload']
+    notice_bytes = hex2bytes(notice)
+    notice_model = abi.decode_to_model(data=notice_bytes,model=VerificationNotice)
+    assert notice_model.user == USER1
+    assert notice_model.score == 99983
 
 def test_should_submit_nop_gameplay_another_user(
         app_client: TestClient,
@@ -215,10 +226,15 @@ def test_should_submit_nop_gameplay_another_user(
     app_client.send_advance(hex_payload=hex_payload, msg_sender=USER2)
 
     assert app_client.rollup.status # No reverts
-    assert len(app_client.rollup.notices) == last_notice_n # + 1
+    assert len(app_client.rollup.notices) == last_notice_n + 1
     assert len(app_client.rollup.reports) == last_report_n
 
     # validate notice
+    notice = app_client.rollup.notices[-1]['data']['payload']
+    notice_bytes = hex2bytes(notice)
+    notice_model = abi.decode_to_model(data=notice_bytes,model=VerificationNotice)
+    assert notice_model.user == USER2
+    assert notice_model.score == 99983
 
 def test_should_submit_gameplay(
         app_client: TestClient,
@@ -231,16 +247,21 @@ def test_should_submit_gameplay(
     app_client.send_advance(hex_payload=hex_payload)
 
     assert app_client.rollup.status # No reverts
-    assert len(app_client.rollup.notices) == last_notice_n # + 1
+    assert len(app_client.rollup.notices) == last_notice_n + 1
     assert len(app_client.rollup.reports) == last_report_n
 
-
     # validate notice
+    notice = app_client.rollup.notices[-1]['data']['payload']
+    notice_bytes = hex2bytes(notice)
+    notice_model = abi.decode_to_model(data=notice_bytes,model=VerificationNotice)
+    assert notice_model.user == USER1
+    assert notice_model.score == 109172
 
 def test_should_submit_gameplay_another_user(
         app_client: TestClient,
         gameplay_payload: Payload):
 
+    gameplay_payload.outhash = USER2_GAMEPLAY_OUTHASH
     hex_payload = bytes2hex(abi.encode_model(gameplay_payload,True))
 
     last_notice_n = len(app_client.rollup.notices)
@@ -248,10 +269,15 @@ def test_should_submit_gameplay_another_user(
     app_client.send_advance(hex_payload=hex_payload, msg_sender=USER2)
 
     assert app_client.rollup.status # No reverts
-    assert len(app_client.rollup.notices) == last_notice_n # + 1
+    assert len(app_client.rollup.notices) == last_notice_n + 1
     assert len(app_client.rollup.reports) == last_report_n
 
     # validate notice
+    notice = app_client.rollup.notices[-1]['data']['payload']
+    notice_bytes = hex2bytes(notice)
+    notice_model = abi.decode_to_model(data=notice_bytes,model=VerificationNotice)
+    assert notice_model.user == USER2
+    assert notice_model.score == 107172
 
 # test inspect
 def test_should_receive_inspect_no_data(app_client: TestClient):

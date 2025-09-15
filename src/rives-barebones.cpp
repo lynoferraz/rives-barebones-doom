@@ -6,6 +6,7 @@
 #include <cstring> // std::strerror
 #include <fstream> // file stream operations
 #include <iomanip> // Required for std::hex, std::setw, std::setfill
+#include <regex>
 #include <sstream> // Required for std::stringstream
 #include <string>  // for string class
 
@@ -29,14 +30,17 @@ extern "C" {
 #define BYTES32_SIZE 32
 #define MIN_GAMEPLAY_LOG_SIZE 16
 #define MAX_GAMEPLAY_LOG_SIZE 1048576
-#define TEMPFILE_SIZE 14
+#define TEMPFILE_SIZE 18
 #define CARTRIDGE_PATH "/cartridges/freedoom.sqfs"
 
 namespace {
 
 using be256 = std::array<uint8_t, BE256_SIZE>;
 
-using wallet_address = cmt_abi_address_t;
+typedef struct wallet_address {
+  uint8_t fix[BYTES32_SIZE - CMT_ABI_ADDRESS_LENGTH];
+  uint8_t data[CMT_ABI_ADDRESS_LENGTH];
+} wallet_address_t;
 
 typedef struct bytes32 {
   uint8_t data[BYTES32_SIZE];
@@ -57,7 +61,7 @@ struct [[gnu::packed]] gameplay_payload {
 
 // Payload encoding gameplay inputs
 struct [[gnu::packed]] gameplay_notice {
-  wallet_address user;
+  wallet_address_t user;
   be256 timestamp;
   be256 score;
   be256 input_index;
@@ -66,8 +70,10 @@ struct [[gnu::packed]] gameplay_notice {
 template <typename T>
 [[nodiscard]]
 constexpr cmt_abi_bytes_t payload_to_bytes(const T &payload) {
+  std::ignore = std::fprintf(stdout, "[rives] payload_to_bytes size %zu\n",
+                             sizeof(payload));
   cmt_abi_bytes_t payload_bytes = {
-      .length = sizeof(T),
+      .length = sizeof(payload),
       .data = const_cast<T *>(
           &payload) // NOLINT(cppcoreguidelines-pro-type-const-cast)
   };
@@ -89,10 +95,12 @@ bool rollup_emit_report(cmt_rollup_t *rollup, const T &payload) {
 }
 
 // Emit a notice into rollup device.
-template <typename T>
 [[nodiscard]]
-bool rollup_emit_notice(cmt_rollup_t *rollup, const T &payload) {
-  const cmt_abi_bytes_t payload_bytes = payload_to_bytes(payload);
+bool rollup_emit_notice(cmt_rollup_t *rollup,
+                        const cmt_abi_bytes_t &payload_bytes) {
+  std::ignore =
+      std::fprintf(stdout, "[rives] notice payload bytes length %zu\n",
+                   payload_bytes.length);
   const int err = cmt_rollup_emit_notice(rollup, &payload_bytes, nullptr);
   if (err < 0) {
     std::ignore = std::fprintf(stderr, "[rives] unable to emit notice: %s\n",
@@ -154,6 +162,8 @@ enum handle_status : uint8_t {
   STATUS_OUTHASH_ERROR,
   STATUS_FILE_ERROR,
   STATUS_FORK_ERROR,
+  STATUS_OUTCARD_ERROR,
+  STATUS_NOTICE_ERROR,
 };
 
 // Status code for advance reports.
@@ -162,7 +172,8 @@ struct [[gnu::packed]] handle_report {
 };
 
 // Process gameplay validation
-handle_status process_verification(const cmt_rollup_advance_t &input) {
+handle_status process_verification(cmt_rollup_t *rollup,
+                                   const cmt_rollup_advance_t &input) {
 
   // Step 1: Validate input (size)
   if (input.payload.length < BYTES32_SIZE + MIN_GAMEPLAY_LOG_SIZE) {
@@ -190,7 +201,7 @@ handle_status process_verification(const cmt_rollup_advance_t &input) {
   // Step 2.2: save gameplay log in temp file
 
   // Write the gameplay log to the temporary file
-  char gameplay_log_filepath[TEMPFILE_SIZE + 1] = "/run/tmpXXXXXX";
+  char gameplay_log_filepath[TEMPFILE_SIZE + 1 - 1] = "/run/rivlogXXXXXX";
   int gameplay_log_fd = mkstemp(gameplay_log_filepath);
 
   // Check if the file creation was successful
@@ -213,10 +224,10 @@ handle_status process_verification(const cmt_rollup_advance_t &input) {
   }
 
   // Step 2.3: prepare temp files for outcard and outhash
-  char outcard_filepath[TEMPFILE_SIZE + 1] = "/run/tmpXXXXXX";
+  char outcard_filepath[TEMPFILE_SIZE + 2] = "/run/outcardXXXXXX";
   std::ignore = mktemp(outcard_filepath);
 
-  char outhash_filepath[TEMPFILE_SIZE + 1] = "/run/tmpXXXXXX";
+  char outhash_filepath[TEMPFILE_SIZE + 2] = "/run/outhashXXXXXX";
   std::ignore = mktemp(outhash_filepath);
 
   // Step 2.4: set up and run verification
@@ -273,10 +284,12 @@ handle_status process_verification(const cmt_rollup_advance_t &input) {
     std::ignore = unlink(outhash_filepath);
     return STATUS_VERIFICATION_ERROR;
   }
+
+  std::ignore = std::fprintf(stderr, "[rives] debug\n");
   // Step 3: get outhash and compare with input outhash
   std::ifstream outhash_file(outhash_filepath);
   if (!outhash_file.is_open()) {
-    std::ignore = std::fprintf(stderr, "[rives] error opening id file\n");
+    std::ignore = std::fprintf(stderr, "[rives] error opening outhash file\n");
     // remove the file even on error
     std::ignore = unlink(gameplay_log_filepath);
     std::ignore = unlink(outcard_filepath);
@@ -312,13 +325,93 @@ handle_status process_verification(const cmt_rollup_advance_t &input) {
   }
 
   // Step 4: Get outcard and extract score
+  std::ifstream outcard_file(outcard_filepath);
+  if (!outcard_file.is_open()) {
+    std::ignore = std::fprintf(stderr, "[rives] error opening outcard file\n");
+    // remove the file even on error
+    std::ignore = unlink(gameplay_log_filepath);
+    std::ignore = unlink(outcard_filepath);
+    std::ignore = unlink(outhash_filepath);
+    return STATUS_FILE_ERROR;
+  }
+  std::stringstream outcard_buffer;
+  outcard_buffer << outcard_file.rdbuf();
+  std::string outcard_str = outcard_buffer.str();
+
+  outcard_file.close();
+
+  std::ignore =
+      std::fprintf(stdout, "[rives] outcard: %s\n", outcard_str.c_str());
+
   // Step 5: cleanup temp files
   std::ignore = unlink(gameplay_log_filepath);
   std::ignore = unlink(outcard_filepath);
   std::ignore = unlink(outhash_filepath);
 
-  // Step 6: prepare and emit notice (can't revert after, so no errors from here
-  // on)
+  // Step 6: prepare TO emit notice
+
+  // std::regex score_pattern("\"score\":\\s*(\\d+)\\s*,");
+  static const std::regex score_pattern(R"("score":\s*(\d+)\s*,)");
+  std::smatch score_matches;
+
+  std::ignore = std::fprintf(
+      stdout, "[rives] looking for score matches from outcard file\n");
+
+  bool found = std::regex_search(outcard_str, score_matches, score_pattern);
+  bool ready = score_matches.ready();
+
+  // std::ignore = std::fprintf(
+  //     stdout,
+  //     "[rives] Score on the outcard regex search "
+  //     "found=%d and ready=%d matches=%ld group1=%s group2=%s\n",
+  //     found, ready, score_matches.size(), score_matches[0].str().c_str(),
+  //     score_matches[1].str().c_str());
+
+  if (!found || !ready || score_matches.size() < 2) {
+    std::ignore =
+        std::fprintf(stderr, "[rives] error getting score from outcard file\n");
+    return STATUS_OUTCARD_ERROR;
+  }
+
+  std::ignore =
+      std::fprintf(stdout, "[rives] Found %d and ready %d\n", found, ready);
+
+  std::ignore = std::fprintf(stdout, "[rives] found score matches=%ld\n",
+                             score_matches.size());
+  std::ignore = std::fprintf(stdout, "[rives] full match: %s\n",
+                             score_matches[0].str().c_str());
+  std::ignore = std::fprintf(stdout, "[rives] group 1: %s\n",
+                             score_matches[1].str().c_str());
+
+  int64_t score = std::stoi(score_matches[1].str());
+
+  gameplay_notice notice{};
+  memcpy(notice.user.data, input.msg_sender.data, CMT_ABI_ADDRESS_LENGTH);
+
+  for (size_t i = 0; i < sizeof(score); i++) {
+    const size_t j = BYTES32_SIZE - i - 1;
+    notice.score[j] = (score >> (i * 8)) & 0xFF;
+    notice.input_index[j] = (input.index >> (i * 8)) & 0xFF;
+    notice.timestamp[j] = (input.block_timestamp >> (i * 8)) & 0xFF;
+  }
+  if (score < 0) {
+    for (size_t i = 0; i < BYTES32_SIZE - sizeof(score); i++) {
+      notice.score[i] = 0xFF;
+    }
+  }
+
+  // Step 7: emit notice (can't revert after, so no errors from here on)
+
+  std::ignore = std::fprintf(stdout, "[rives] Sending notice\n");
+  std::ignore =
+      std::fprintf(stdout, "[rives] notice size %zu\n", sizeof(notice));
+
+  const cmt_abi_bytes_t notice_bytes = {.length = sizeof(notice),
+                                        .data = &notice};
+  if (!rollup_emit_notice(rollup, notice_bytes)) {
+    std::ignore = std::fprintf(stderr, "[rives] error emitting notice\n");
+    return STATUS_NOTICE_ERROR;
+  }
 
   return STATUS_SUCCESS;
 }
@@ -346,7 +439,7 @@ bool advance_state(cmt_rollup_t *rollup) {
   std::ignore = std::fprintf(stdout, "[rives] advance request with size %zu\n",
                              input.payload.length);
 
-  const handle_status verification_err = process_verification(input);
+  const handle_status verification_err = process_verification(rollup, input);
   if (verification_err != STATUS_SUCCESS) {
     std::ignore = std::fprintf(stderr, "[rives] verification error %d\n",
                                verification_err);
