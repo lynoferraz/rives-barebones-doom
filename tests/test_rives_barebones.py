@@ -1,20 +1,24 @@
 import pytest
 from pydantic import BaseModel
+import json
 
 from cartesi import abi
 
-from cartesapp.utils import bytes2hex, hex2562uint, hex2bytes
+from cartesapp.utils import bytes2hex, hex2str, hex2bytes
 from cartesapp.testclient import TestClient
 
 # Status codes
 STATUS_SUCCESS = 0
 STATUS_INVALID_REQUEST = 1
 STATUS_INPUT_ERROR = 2
-STATUS_VERIFICATION_ERROR = 3
-STATUS_OUTHASH_ERROR = 4
-STATUS_FILE_ERROR = 5
-STATUS_FORK_ERROR = 6
-STATUS_OUTCARD_ERROR = 7
+STATUS_NOTICE_ERROR = 3
+STATUS_FILE_ERROR = 4
+STATUS_FORK_ERROR = 5
+STATUS_VERIFICATION_ERROR = 6
+STATUS_OUTHASH_ERROR = 7
+STATUS_OUTCARD_ERROR = 8
+STATUS_RUNTIME_EXCEPTION = 9
+STATUS_UNKNOWN_EXCEPTION = 10
 
 USER1 = "0xdeadbeef7dc51b33c9a3e4a21ae053daa1872810"
 NOP_GAMEPLAY_OUTHASH = b'\xe0\x85Y9\xb7\xb7F\xe5\xc5T\xe9!\xd5\xcb3_\xa1+528v\xc6\x9d\x0e\x03\xe6\x85\xa0{\xb8b'
@@ -39,6 +43,13 @@ class VerificationNotice(BaseModel):
     timestamp: abi.UInt256
     score: abi.Int256
     input_index: abi.UInt256
+
+class ErrorModel(BaseModel):
+    code: int
+    message: str
+
+class ErrorReport(BaseModel):
+    error: ErrorModel
 
 ###
 # Tests
@@ -81,8 +92,9 @@ def test_should_fail_short_payload(
     assert len(app_client.rollup.reports) == last_report_n + 1
 
     report = app_client.rollup.reports[-1]['data']['payload']
-    report_code = hex2562uint(report)
-    assert report_code == STATUS_INPUT_ERROR
+    report_json = json.loads(hex2str(report))
+    report_model = ErrorReport.parse_obj(report_json)
+    assert report_model.error.code == STATUS_INPUT_ERROR
 
 def test_should_fail_submit_short_gameplay(
         app_client: TestClient,
@@ -100,8 +112,9 @@ def test_should_fail_submit_short_gameplay(
     assert len(app_client.rollup.reports) == last_report_n + 1
 
     report = app_client.rollup.reports[-1]['data']['payload']
-    report_code = hex2562uint(report)
-    assert report_code == STATUS_INPUT_ERROR
+    report_json = json.loads(hex2str(report))
+    report_model = ErrorReport.parse_obj(report_json)
+    assert report_model.error.code == STATUS_INPUT_ERROR
 
 def test_should_fail_submit_long_payload(
         app_client: TestClient,
@@ -134,8 +147,9 @@ def test_should_fail_submit_long_gameplay(
     assert len(app_client.rollup.reports) == last_report_n + 1
 
     report = app_client.rollup.reports[-1]['data']['payload']
-    report_code = hex2562uint(report)
-    assert report_code == STATUS_INPUT_ERROR
+    report_json = json.loads(hex2str(report))
+    report_model = ErrorReport.parse_obj(report_json)
+    assert report_model.error.code == STATUS_INPUT_ERROR
 
 def test_should_fail_submit_long_gameplay2(
         app_client: TestClient,
@@ -153,8 +167,9 @@ def test_should_fail_submit_long_gameplay2(
     assert len(app_client.rollup.reports) == last_report_n + 1
 
     report = app_client.rollup.reports[-1]['data']['payload']
-    report_code = hex2562uint(report)
-    assert report_code == STATUS_INPUT_ERROR
+    report_json = json.loads(hex2str(report))
+    report_model = ErrorReport.parse_obj(report_json)
+    assert report_model.error.code == STATUS_INPUT_ERROR
 
 def test_should_submit_invalid_gameplay(
         app_client: TestClient,
@@ -172,8 +187,9 @@ def test_should_submit_invalid_gameplay(
     assert len(app_client.rollup.reports) == last_report_n + 1
 
     report = app_client.rollup.reports[-1]['data']['payload']
-    report_code = hex2562uint(report)
-    assert report_code == STATUS_VERIFICATION_ERROR
+    report_json = json.loads(hex2str(report))
+    report_model = ErrorReport.parse_obj(report_json)
+    assert report_model.error.code == STATUS_VERIFICATION_ERROR
 
 def test_should_submit_invalid_outhash(
         app_client: TestClient,
@@ -191,8 +207,9 @@ def test_should_submit_invalid_outhash(
     assert len(app_client.rollup.reports) == last_report_n + 1
 
     report = app_client.rollup.reports[-1]['data']['payload']
-    report_code = hex2562uint(report)
-    assert report_code == STATUS_OUTHASH_ERROR
+    report_json = json.loads(hex2str(report))
+    report_model = ErrorReport.parse_obj(report_json)
+    assert report_model.error.code == STATUS_OUTHASH_ERROR
 
 def test_should_submit_nop_gameplay(
         app_client: TestClient,

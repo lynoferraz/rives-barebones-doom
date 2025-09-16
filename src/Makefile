@@ -14,12 +14,12 @@ HARDEN_CXXFLAGS = \
 	-fno-strict-overflow
 
 	HARDEN2_CXXFLAGS = \
-	-fno-exceptions \
 	-fno-rtti
 
 # Use C++20, without exceptions and RTTI to have minimal overhead and predictable behavior
 CXXFLAGS += \
 	-std=c++20 \
+	-fexceptions \
 	$(WARN_CXXFLAGS) \
 	$(OPT_CXXFLAGS)
 
@@ -44,10 +44,14 @@ OUT_DIR ?= dist
 
 # ARTIFACTS = send_msg receive_msg
 ARTIFACTS = rives-barebones
+SOURCES = $(addsuffix .cpp,$(ARTIFACTS))
 
 BUILDER_IMAGE = rives-barebones-builder
 
 all: $(ARTIFACTS)
+SOURCES = $(addsuffix .cpp,$(ARTIFACTS))
+
+%.cpp: $(addsuffix ,%)
 
 %: %.cpp $(OUT_DIR)
 	$(CXX) $(CXXFLAGS) $(HARDEN_CXXFLAGS) $(HARDEN2_CXXFLAGS) $(INCS) -o $(OUT_DIR)/$@ $< $(LDFLAGS) $(LIBS)
@@ -92,6 +96,7 @@ format-cpp: $(SOURCES) ## Format C++ code
 
 clean: ## Clean generated files
 	rm -rf dist
+	docker rmi $(BUILDER_IMAGE)
 
 distclean: clean ## Clean generated and downloaded files
 
@@ -102,4 +107,4 @@ help: ## Show this help
 		-e 's/^\(.\+\):\(.*\)/$(shell tput setaf 6)\1$(shell tput sgr0):\2/' \
 		$(MAKEFILE_LIST) | column -c2 -t -s :
 
-.PHONY: all shell lint lint-cpp format format-cpp clean distclean help
+.PHONY: all lint lint-cpp format format-cpp clean distclean help

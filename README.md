@@ -56,7 +56,7 @@ Any time you regenerate the binaries, it will rebuild its flash drive, replace i
 
 ### Rivemu
 
-To send Doom gameplay logs to the backend you should first run generate a maplay by playing the Freedoom cartridge with the [Rivemu](https://github.com/rives-io/riv/releases/tag/v0.3-rc16). You should download the appropriate binary (adjust the platform and architecture variables):
+To send Doom gameplay logs to the backend you should first run generate a gameplay log by playing the Freedoom cartridge with the [Rivemu](https://github.com/rives-io/riv/releases/tag/v0.3-rc16). You should download the appropriate binary (adjust the platform and architecture variables):
 
 ```shell
 PLATFORM=linux
