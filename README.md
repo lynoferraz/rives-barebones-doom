@@ -31,10 +31,17 @@ pip3 install pytest-randomly
 You can run a cartesi rollups node on a local devnet with:
 
 ```shell
-cartesapp node
+cartesapp node --log-level debug
 ```
 
 This will generate the snapshot if it doesn't exist, and start the node.
+
+Alternativelly, you can use the cartesi cli with the following commands:
+
+```shell
+npx -p @cartesi/cli@2.0.0-alpha.17 cartesi build
+npx -p @cartesi/cli@2.0.0-alpha.17 cartesi run --block-time 1 --epoch-length 10 --project-name app --port 8080
+```
 
 ### Running in Dev Mode
 
@@ -91,7 +98,39 @@ PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 cast send --private-key ${PRIVATE_KEY} ${INPUTBOX_ADDRESS} "addInput(address,bytes)" ${APPLICATION_ADDRESS} 0x$(cat gameplay.outhash)$(xxd -p -c10000 gameplay.rivlog)
 ```
 
-### Run the Tests
+Note: if you are using the cartesi cli, you should add the `--rpc-url` pointing to cli's devnet `--rpc-url http://localhost:8080/anvil` and set the `APPLICATION_ADDRESS` with the value after you started the Node (the `cartesi run ...` command).
+
+### Get the Outputs
+
+You can get the outputs with the commands defined next. We'll assume you are using the local devnet initiated on one of the previous steps (set the application address and blockchain configuration with the correct values). You'll need `curl`, `jq`, `xxd` tools.
+
+```shell
+RPC_URL=http://localhost:8080/rpc
+curl -s ${RPC_URL} -d '{
+  "jsonrpc": "2.0",
+  "method": "cartesi_listOutputs",
+  "params": {
+    "application": "app"
+  },
+  "id": 1
+}' | jq -r '.result.data[].decoded_data.payload'
+```
+
+You can also get the reports which will contain the errors:
+
+```shell
+RPC_URL=http://localhost:6751/rpc
+curl -s ${RPC_URL} -d '{
+  "jsonrpc": "2.0",
+  "method": "cartesi_listReports",
+  "params": {
+    "application": "app"
+  },
+  "id": 1
+}' | jq -r '.result.data[].raw_data' | xxd -p -r
+```
+
+## Run the Tests
 
 To run the tests:
 

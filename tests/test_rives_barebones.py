@@ -1,5 +1,4 @@
 import pytest
-from pydantic import BaseModel
 import json
 
 from cartesi import abi
@@ -7,52 +6,16 @@ from cartesi import abi
 from cartesapp.utils import bytes2hex, hex2str, hex2bytes
 from cartesapp.testclient import TestClient
 
-# Status codes
-STATUS_SUCCESS = 0
-STATUS_INVALID_REQUEST = 1
-STATUS_INPUT_ERROR = 2
-STATUS_NOTICE_ERROR = 3
-STATUS_FILE_ERROR = 4
-STATUS_FORK_ERROR = 5
-STATUS_VERIFICATION_ERROR = 6
-STATUS_OUTHASH_ERROR = 7
-STATUS_OUTCARD_ERROR = 8
-STATUS_RUNTIME_EXCEPTION = 9
-STATUS_UNKNOWN_EXCEPTION = 10
-
-USER1 = "0xdeadbeef7dc51b33c9a3e4a21ae053daa1872810"
-NOP_GAMEPLAY_OUTHASH = b'\xe0\x85Y9\xb7\xb7F\xe5\xc5T\xe9!\xd5\xcb3_\xa1+528v\xc6\x9d\x0e\x03\xe6\x85\xa0{\xb8b'
-NOP_GAMEPLAY_LOG = b'\x01\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x0f\x00\x00\x00'
-# score = 99983
-GAMEPLAY_OUTHASH = b'\xb0R-\xdc\x97\xcbA\xfc\xb8\xd2fbZ\xcaw\xd7\xe4\xa1\x07J.\xbf\x96O\xa9[x\xd3\xf1;\xa36'
-GAMEPLAY_LOG     = b'\x01\x01\x07\x07N\x00\x00\x00@\x00\x00\x00R\x00\x00\x00frhsi g%\xca+\x0e\xc2@\x14\x05\xd0w?\xef\x0e\x996#\xda`HP\x08\x04\xbb`\xff\x8b\xaa\xa89\xea\x14\x88\xa2H\x9b\xbc-\xcbdwYNl\xbbH\xb2b\xdf!e\x99\xa0!WH\xc7d\xd9\xa5z\x7f\x05ay\x06SI\x8e\x06\xb8\xf0\xe9\xc6FklR4:\x9c\x9d\x9d\xf3\x18\t40\xb2\xf3\xac&\x1eg6\xe8\xd5\xeb\xf9\xfb\xe7\x02'
-# score = 109172
-
-USER2 = f"{2:#042x}"
-USER2_GAMEPLAY_OUTHASH = b'\xac\x1c\x18\x0c\xce>\x15\xf0J*\x92\xeb\xae\xae\x17MV\x95w\x17\xe4*\xb2\xe8)k\xabmx\xdeS:'
-# score = 107172
-
-# inputs
-class Payload(BaseModel):
-    outhash: abi.Bytes32
-    gameplay_log: abi.Bytes
-
-# outputs
-class VerificationNotice(BaseModel):
-    user: abi.Address
-    timestamp: abi.UInt256
-    score: abi.Int256
-    input_index: abi.UInt256
-
-class ErrorModel(BaseModel):
-    code: int
-    message: str
-
-class ErrorReport(BaseModel):
-    error: ErrorModel
+from model import *
 
 ###
 # Tests
+
+# test application setup
+@pytest.fixture(scope='module')
+def app_client() -> TestClient:
+    client = TestClient()
+    return client
 
 # test payload
 @pytest.fixture()
@@ -62,18 +25,19 @@ def nop_gameplay_payload() -> Payload:
         gameplay_log=NOP_GAMEPLAY_LOG
     )
 
-# test application setup
-@pytest.fixture(scope='session')
-def app_client() -> TestClient:
-    client = TestClient()
-    return client
-
 # test payload
 @pytest.fixture()
 def gameplay_payload() -> Payload:
     return Payload(
         outhash=GAMEPLAY_OUTHASH,
         gameplay_log=GAMEPLAY_LOG
+    )
+
+@pytest.fixture()
+def noplg_gameplay_payload() -> Payload:
+    return Payload(
+        outhash=LGNOP_GAMEPLAY_OUTHASH,
+        gameplay_log=LGNOP_GAMEPLAY_LOG
     )
 
 ###
@@ -95,6 +59,14 @@ def test_should_fail_short_payload(
     report_json = json.loads(hex2str(report))
     report_model = ErrorReport.parse_obj(report_json)
     assert report_model.error.code == STATUS_INPUT_ERROR
+
+def test_should_fail_malformed_payload(
+        app_client: TestClient):
+
+    app_client.rollup.send_raw_advance(b'')
+
+    # application exited
+    assert not app_client.rollup.status
 
 def test_should_fail_submit_short_gameplay(
         app_client: TestClient,
@@ -252,6 +224,27 @@ def test_should_submit_nop_gameplay_another_user(
     notice_model = abi.decode_to_model(data=notice_bytes,model=VerificationNotice)
     assert notice_model.user == USER2
     assert notice_model.score == 99983
+
+def test_should_submit_noplg_gameplay(
+        app_client: TestClient,
+        noplg_gameplay_payload: Payload):
+
+    hex_payload = bytes2hex(abi.encode_model(noplg_gameplay_payload,True))
+
+    last_notice_n = len(app_client.rollup.notices)
+    last_report_n = len(app_client.rollup.reports)
+    app_client.send_advance(hex_payload=hex_payload)
+
+    assert app_client.rollup.status # No reverts
+    assert len(app_client.rollup.notices) == last_notice_n + 1
+    assert len(app_client.rollup.reports) == last_report_n
+
+    # validate notice
+    notice = app_client.rollup.notices[-1]['data']['payload']
+    notice_bytes = hex2bytes(notice)
+    notice_model = abi.decode_to_model(data=notice_bytes,model=VerificationNotice)
+    assert notice_model.user == USER1
+    assert notice_model.score == 48226
 
 def test_should_submit_gameplay(
         app_client: TestClient,

@@ -1,3 +1,4 @@
+#include <cstddef>
 #include <cstdint>
 
 #include <cerrno>  // errno
@@ -158,16 +159,15 @@ bool rollup_process_next_request(cmt_rollup_t *rollup,
 // Status code sent in reports
 enum handle_status : uint8_t {
   STATUS_SUCCESS = 0,
-  STATUS_INVALID_REQUEST = 1,
-  STATUS_INPUT_ERROR = 2,
-  STATUS_NOTICE_ERROR = 3,
-  STATUS_FILE_ERROR = 4,
-  STATUS_FORK_ERROR = 5,
-  STATUS_VERIFICATION_ERROR = 6,
-  STATUS_OUTHASH_ERROR = 7,
-  STATUS_OUTCARD_ERROR = 8,
-  STATUS_RUNTIME_EXCEPTION = 9,
-  STATUS_UNKNOWN_EXCEPTION = 10,
+  STATUS_INPUT_ERROR = 1,
+  STATUS_NOTICE_ERROR = 2,
+  STATUS_FILE_ERROR = 3,
+  STATUS_FORK_ERROR = 4,
+  STATUS_VERIFICATION_ERROR = 5,
+  STATUS_OUTHASH_ERROR = 6,
+  STATUS_OUTCARD_ERROR = 7,
+  STATUS_RUNTIME_EXCEPTION = 8,
+  STATUS_UNKNOWN_EXCEPTION = 9,
 };
 
 char *rives_report_payload(handle_status status, const char *message,
@@ -198,6 +198,21 @@ public:
   handle_status code() const noexcept { return errorCode; }
 };
 
+struct unique_temp_file {
+  explicit unique_temp_file(const char *patt, size_t length) {
+    strncpy(path, patt, length);
+    fd = mkstemp(path);
+  }
+  ~unique_temp_file() {
+    if (fd >= 0) {
+      close(fd);
+      unlink(path);
+    }
+  }
+  char path[TEMPFILE_SIZE];
+  int fd;
+};
+
 // Process gameplay validation
 void process_verification(cmt_rollup_t *rollup,
                           const cmt_rollup_advance_t &input) {
@@ -222,21 +237,25 @@ void process_verification(cmt_rollup_t *rollup,
                              msg_sender_ss.str().c_str());
 
   // Step 2.2: prepare temp files
-  char outcard_filepath[TEMPFILE_SIZE] = "/run/outcardXXXXXX";
-  int outcard_fd = mkstemp(outcard_filepath);
-  if (outcard_fd == -1) {
+  //
+  unique_temp_file outcard_file("/run/outcardXXXXXX", TEMPFILE_SIZE);
+  if (outcard_file.fd == -1) {
     throw RivesException("error opening outcard temp file", STATUS_FILE_ERROR);
   }
-
-  char outhash_filepath[TEMPFILE_SIZE] = "/run/outhashXXXXXX";
-  int outhash_fd = mkstemp(outhash_filepath);
-  if (outhash_fd == -1) {
-    throw RivesException("error opening outhash temp file", STATUS_FILE_ERROR);
+  if (close(outcard_file.fd) == -1) {
+    throw RivesException("error closing outcard temp file", STATUS_FILE_ERROR);
   }
 
-  char gameplay_log_filepath[TEMPFILE_SIZE] = "/run/gamelogXXXXXX";
-  int gameplay_log_fd = mkstemp(gameplay_log_filepath);
-  if (gameplay_log_fd == -1) {
+  unique_temp_file outhash_file("/run/outhashXXXXXX", TEMPFILE_SIZE);
+  if (outhash_file.fd == -1) {
+    throw RivesException("error opening outhash temp file", STATUS_FILE_ERROR);
+  }
+  if (close(outhash_file.fd) == -1) {
+    throw RivesException("error closing outhash temp file", STATUS_FILE_ERROR);
+  }
+
+  unique_temp_file gameplay_log_file("/run/gamelogXXXXXX", TEMPFILE_SIZE);
+  if (gameplay_log_file.fd == -1) {
     throw RivesException("error opening gameplay log temp file",
                          STATUS_FILE_ERROR);
   }
@@ -244,129 +263,117 @@ void process_verification(cmt_rollup_t *rollup,
   // define variables needed outside try scope
   std::string outcard_str;
 
-  try {
-    // Step 2.3: save gameplay log in temp file
+  // Step 2.3: save gameplay log in temp file
 
-    // Write the gameplay log to the temporary file
-    ssize_t bytes_to_write = input.payload.length - BYTES32_SIZE;
-    ssize_t bytes_written =
-        write(gameplay_log_fd,
-              reinterpret_cast<const char *>(input.payload.data) + BYTES32_SIZE,
-              bytes_to_write);
-    if (bytes_written != bytes_to_write) {
-      throw RivesException("error writing to temporary file",
-                           STATUS_FILE_ERROR);
-    }
-    if (close(gameplay_log_fd) == -1) {
-      throw RivesException("error closing temporary file", STATUS_FILE_ERROR);
-    }
-
-    // Step 2.4: set up and run verification
-
-    pid_t pid = fork();
-
-    if (pid == -1) {
-      throw RivesException("failed to fork", STATUS_FORK_ERROR);
-    } else if (pid == 0) {
-      // child
-
-      std::ignore = std::fprintf(
-          stdout,
-          "[rives] full cmd: /rivos/usr/sbin/riv-chroot /rivos --setenv "
-          "RIV_CARTRIDGE %s --setenv RIV_REPLAYLOG %s --setenv RIV_OUTCARD %s "
-          "--setenv RIV_OUTHASH %s --setenv RIV_NO_YIELD y --setenv "
-          "RIV_ENTROPY "
-          "%s "
-          "riv-run\n",
-          CARTRIDGE_PATH, gameplay_log_filepath, outcard_filepath,
-          outhash_filepath, msg_sender_ss.str().c_str());
-
-      const int err =
-          execl("/rivos/usr/sbin/riv-chroot", "/rivos/usr/sbin/riv-chroot",
-                "/rivos", "--setenv", "RIV_CARTRIDGE", CARTRIDGE_PATH,
-                "--setenv", "RIV_REPLAYLOG", gameplay_log_filepath, "--setenv",
-                "RIV_OUTCARD", outcard_filepath, "--setenv", "RIV_OUTHASH",
-                outhash_filepath, "--setenv", "RIV_NO_YIELD", "y", "--setenv",
-                "RIV_ENTROPY", msg_sender_ss.str().c_str(), "riv-run", NULL);
-
-      if (err != 0) {
-        std::ignore =
-            std::fprintf(stderr, "[rives] error running verification: %s\n",
-                         std::strerror(-err));
-        _exit(STATUS_VERIFICATION_ERROR);
-      }
-
-      _exit(STATUS_SUCCESS);
-    }
-
-    int status;
-    waitpid(pid, &status, 0);
-    std::ignore = std::fprintf(stdout, "[rives] wait status: %d (%d, %d)\n",
-                               status, WIFEXITED(status), WEXITSTATUS(status));
-
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != STATUS_SUCCESS) {
-      throw RivesException("error running verification",
-                           STATUS_VERIFICATION_ERROR);
-    }
-
-    std::ignore = std::fprintf(stderr, "[rives] debug\n");
-    // Step 3: get outhash and compare with input outhash
-    std::ifstream outhash_file(outhash_filepath);
-    if (!outhash_file.is_open()) {
-      throw RivesException("error opening outhash file", STATUS_FILE_ERROR);
-    }
-    std::string outhash_hex_str;
-    std::getline(outhash_file, outhash_hex_str);
-    outhash_file.close();
-
-    bytes32_t verification_outhash;
-    bytes32_t payload_outhash;
-    const uint8_t *payload_data =
-        reinterpret_cast<const uint8_t *>(input.payload.data);
-    // Loop through the hex string, two characters at a time
-    for (size_t i = 0; i < BYTES32_SIZE; i += 1) {
-      std::string byteString = outhash_hex_str.substr(2 * i, 2);
-      uint8_t byteValue =
-          static_cast<uint8_t>(std::stoi(byteString, nullptr, 16));
-      verification_outhash.data[i] = byteValue;
-      payload_outhash.data[i] = payload_data[i];
-    }
-
-    if (!(payload_outhash == verification_outhash)) {
-      std::string err_msg = "error outhash mismatch, received ";
-      err_msg += outhash_hex_str.c_str();
-      throw RivesException(err_msg.c_str(), STATUS_OUTHASH_ERROR);
-    }
-
-    // Step 4: Get outcard and extract score
-    std::ifstream outcard_file(outcard_filepath);
-    if (!outcard_file.is_open()) {
-      throw RivesException("error opening outcard file", STATUS_FILE_ERROR);
-    }
-    std::stringstream outcard_buffer;
-    outcard_buffer << outcard_file.rdbuf();
-    outcard_str = outcard_buffer.str();
-
-    outcard_file.close();
-
-    std::ignore =
-        std::fprintf(stdout, "[rives] outcard: %s\n", outcard_str.c_str());
-
-    // Step 5: cleanup temp files
-    std::ignore = unlink(gameplay_log_filepath);
-    std::ignore = unlink(outcard_filepath);
-    std::ignore = unlink(outhash_filepath);
-
-  } catch (...) {
-    // remove the temp files even on error
-    std::ignore = unlink(gameplay_log_filepath);
-    std::ignore = unlink(outcard_filepath);
-    std::ignore = unlink(outhash_filepath);
-    throw;
+  // Write the gameplay log to the temporary file
+  ssize_t bytes_to_write = input.payload.length - BYTES32_SIZE;
+  ssize_t bytes_written =
+      write(gameplay_log_file.fd,
+            reinterpret_cast<const char *>(input.payload.data) + BYTES32_SIZE,
+            bytes_to_write);
+  if (bytes_written != bytes_to_write) {
+    throw RivesException("error writing to gameplay log temp file",
+                         STATUS_FILE_ERROR);
+  }
+  if (close(gameplay_log_file.fd) == -1) {
+    throw RivesException("error closing gameplay log temp file",
+                         STATUS_FILE_ERROR);
   }
 
-  // Step 6: prepare TO emit notice
+  // Step 2.4: set up and run verification
 
+  pid_t pid = fork();
+
+  if (pid == -1) {
+    throw RivesException("failed to fork", STATUS_FORK_ERROR);
+  } else if (pid == 0) {
+    // child
+
+    std::ignore = std::fprintf(
+        stdout,
+        "[rives] full cmd: /rivos/usr/sbin/riv-chroot /rivos --setenv "
+        "RIV_CARTRIDGE %s --setenv RIV_REPLAYLOG %s --setenv RIV_OUTCARD %s "
+        "--setenv RIV_OUTHASH %s --setenv RIV_NO_YIELD y --setenv "
+        "RIV_ENTROPY "
+        "%s "
+        "riv-run\n",
+        CARTRIDGE_PATH, gameplay_log_file.path, outcard_file.path,
+        outhash_file.path, msg_sender_ss.str().c_str());
+
+    const int err =
+        execl("/rivos/usr/sbin/riv-chroot", "/rivos/usr/sbin/riv-chroot",
+              "/rivos", "--setenv", "RIV_CARTRIDGE", CARTRIDGE_PATH, "--setenv",
+              "RIV_REPLAYLOG", gameplay_log_file.path, "--setenv",
+              "RIV_OUTCARD", outcard_file.path, "--setenv", "RIV_OUTHASH",
+              outhash_file.path, "--setenv", "RIV_NO_YIELD", "y", "--setenv",
+              "RIV_ENTROPY", msg_sender_ss.str().c_str(), "riv-run", NULL);
+
+    if (err != 0) {
+      std::ignore =
+          std::fprintf(stderr, "[rives] error running verification: %s\n",
+                       std::strerror(-err));
+      _exit(STATUS_VERIFICATION_ERROR);
+    }
+
+    _exit(STATUS_SUCCESS);
+  }
+
+  int status;
+  waitpid(pid, &status, 0);
+  std::ignore = std::fprintf(stdout, "[rives] wait status: %d (%d, %d)\n",
+                             status, WIFEXITED(status), WEXITSTATUS(status));
+
+  if (!WIFEXITED(status) || WEXITSTATUS(status) != STATUS_SUCCESS) {
+    throw RivesException("error running verification",
+                         STATUS_VERIFICATION_ERROR);
+  }
+
+  // Step 3: get outhash and compare with input outhash
+  std::ifstream outhash_filefs(outhash_file.path);
+  if (!outhash_filefs.is_open()) {
+    throw RivesException("error opening outhash file", STATUS_FILE_ERROR);
+  }
+  std::string outhash_hex_str;
+  std::getline(outhash_filefs, outhash_hex_str);
+  outhash_filefs.close();
+
+  bytes32_t verification_outhash;
+  bytes32_t payload_outhash;
+  const uint8_t *payload_data =
+      reinterpret_cast<const uint8_t *>(input.payload.data);
+  // Loop through the hex string, two characters at a time
+  for (size_t i = 0; i < BYTES32_SIZE; i += 1) {
+    std::string byteString = outhash_hex_str.substr(2 * i, 2);
+    uint8_t byteValue =
+        static_cast<uint8_t>(std::stoi(byteString, nullptr, 16));
+    verification_outhash.data[i] = byteValue;
+    payload_outhash.data[i] = payload_data[i];
+  }
+
+  if (!(payload_outhash == verification_outhash)) {
+    std::string err_msg = "error outhash mismatch, obtained ";
+    err_msg += outhash_hex_str.c_str();
+    throw RivesException(err_msg.c_str(), STATUS_OUTHASH_ERROR);
+  }
+
+  // Step 4: Get outcard and extract score
+  std::ifstream outcard_filefs(outcard_file.path);
+  if (!outcard_filefs.is_open()) {
+    throw RivesException("error opening outcard file", STATUS_FILE_ERROR);
+  }
+  std::stringstream outcard_buffer;
+  outcard_buffer << outcard_filefs.rdbuf();
+  outcard_str = outcard_buffer.str();
+
+  outcard_filefs.close();
+
+  std::ignore =
+      std::fprintf(stdout, "[rives] outcard: %s\n", outcard_str.c_str());
+
+  // Step 5: cleanup temp files
+  // done in unique_temp_file class destructor
+
+  // Step 6: prepare TO emit notice
   static const std::regex score_pattern(R"("score":\s*(\d+)\s*,)");
   std::smatch score_matches;
 
@@ -427,13 +434,10 @@ bool advance_state(cmt_rollup_t *rollup) {
       std::ignore =
           std::fprintf(stderr, "[rives] unable to read advance state: %s\n",
                        std::strerror(-err));
-      if (err == -ENOBUFS) {
-        std::ignore = std::fprintf(
-            stderr, "[rives] advance state not found, forcing exit\n");
-        exit(-1); // force exit. Exceptional error
-      }
-      throw RivesException("invalid advance state", STATUS_INVALID_REQUEST);
+      std::ignore = std::fprintf(stderr, "[rives] forcing exit\n");
+      exit(-EINVAL); // force exit. Exceptional error
     }
+
     std::ignore =
         std::fprintf(stdout, "[rives] advance request with size %zu\n",
                      input.payload.length);
@@ -501,7 +505,6 @@ bool inspect_state(cmt_rollup_t *rollup) {
   std::ignore = std::fprintf(stderr, "[rives] inspect ignored\n");
   return false;
 }
-
 }; // anonymous namespace
 
 // Application main.
