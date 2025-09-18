@@ -1,6 +1,3 @@
-sdk = "ghcr.io/prototyp3-dev/cartesapp:latest"
-
-
 [machine]
 ram-length = "256Mi"
 user = "root"
