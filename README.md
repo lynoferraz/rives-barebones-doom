@@ -39,8 +39,8 @@ This will generate the snapshot if it doesn't exist, and start the node.
 Alternativelly, you can use the cartesi cli with the following commands:
 
 ```shell
-npx -p @cartesi/cli@2.0.0-alpha.17 cartesi build
-npx -p @cartesi/cli@2.0.0-alpha.17 cartesi run --block-time 1 --epoch-length 10 --project-name app --port 8080
+npx -p @cartesi/cli@2.0.0-alpha.18 cartesi build
+npx -p @cartesi/cli@2.0.0-alpha.18 cartesi run --block-time 1 --epoch-length 10 --project-name app --port 8080
 ```
 
 ### Running in Dev Mode
