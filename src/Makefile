@@ -96,6 +96,8 @@ format-cpp: $(SOURCES) ## Format C++ code
 
 clean: ## Clean generated files
 	rm -rf dist
+
+clean-builder-image: ## Clean builder-image
 	docker rmi $(BUILDER_IMAGE)
 
 distclean: clean ## Clean generated and downloaded files
