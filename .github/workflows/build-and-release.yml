@@ -13,11 +13,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
       - name: Install Cartesapp
         run: |
           pip3 install cartesapp[dev]@git+https://github.com/prototyp3-dev/cartesapp@v1.1.0
