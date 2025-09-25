@@ -1,5 +1,5 @@
-name: rootfs
-run-name: Testing and Building Rootfs
+name: build-and-release
+run-name: Testing and Releasing Rives barebones with Doom
 on: push
 
 jobs:
@@ -17,14 +17,20 @@ jobs:
         with:
           python-version: "3.12"
           cache: "pip"
-      - run: pip install .[dev]
+      - run: |
+          pip3 install cartesapp[dev]@git+https://github.com/prototyp3-dev/cartesapp@v1.1.0
 
       - name: Build with Cartesapp
         run: |
           cartesapp build --log-level debug
 
-      - name: Test with Cartesapp with cartesi machine
+      - name: Test 1st time
         run: |
+          cartesapp test --cartesi-machine --log-level debug
+
+      - name: 2nd Test random order
+        run: |
+          pip3 install pytest-randomly
           cartesapp test --cartesi-machine --log-level debug
 
       - name: Create artifact archive
