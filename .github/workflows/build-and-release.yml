@@ -13,6 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Install Cartesapp
         run: |
           pip3 install cartesapp[dev]@git+https://github.com/prototyp3-dev/cartesapp@v1.1.0
