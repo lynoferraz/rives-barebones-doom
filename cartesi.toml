@@ -10,6 +10,7 @@ dockerfile = "rootfs.dockerfile"
 format = "ext2"
 avoid_overwrite = "true"
 extra_size = "2Mb"
+buildx = true
 
 [drives.app]
 builder = "docker"
