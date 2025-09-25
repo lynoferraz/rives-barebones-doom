@@ -3,7 +3,7 @@ run-name: Testing and Building Rootfs
 on: push
 
 jobs:
-  build-rootfs:
+  build-and-test:
     runs-on: ubuntu-latest
     environment: Main
 
