@@ -1,0 +1,71 @@
+name: rootfs
+run-name: Testing and Building Rootfs
+on: push
+
+jobs:
+  build-rootfs:
+    runs-on: ubuntu-latest
+    environment: Main
+
+    permissions:
+      packages: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+      - run: pip install .[dev]
+
+      - name: Build with Cartesapp
+        run: |
+          cartesapp build --log-level debug
+
+      - name: Test with Cartesapp with cartesi machine
+        run: |
+          cartesapp test --cartesi-machine --log-level debug
+
+      - name: Create artifact archive
+        run: |
+          cd .cartesi/image && tar -czf ../../rives-barebones-doom-snapshot.tar.gz * && cd ../..
+          sha256sum rives-barebones-doom-snapshot.tar.gz > rives-barebones-doom-snapshot.tar.gz.sha256
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: rives-barebones-doom-snapshot
+          path: |
+            rives-barebones-doom-snapshot.tar.gz
+            rives-barebones-doom-snapshot.tar.gz.sha256
+          retention-days: 2
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -name "*.tar.gz" -exec cp {} release-assets/ \;
+          find artifacts -name "*.sha256" -exec cp {} release-assets/ \;
+          ls -la release-assets/
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          files: release-assets/*
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
