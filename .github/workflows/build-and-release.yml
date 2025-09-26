@@ -1,6 +1,6 @@
 name: build-and-release
 run-name: Testing and Releasing Rives barebones with Doom
-on: push
+on: [push, workflow_dispatch]
 
 jobs:
   build-and-test:
