@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+    <head>
+        <link rel="stylesheet" href="main.css" />
+    </head>
+    <body style="background-color: lightcyan; height: 96vh;">
+        <div class="emulator-frame">
+            <iframe
+                id="emulator-iframe"
+                width="768"
+                allowfullscreen
+                style="border: none; height: 96vh;"
+            ></iframe>
+        </div>
+        <script defer type="module">
+            import { setEmulatorUrl } from "../dist/main.js";
+            setEmulatorUrl({cartridgeId:"2e3e4244c2bc",extra:"gamepad=true&alpha=0",ruleId:"2e3e4244c2bc2e3e4244c2bccfee7c08a98f4b56"});
+        </script>
+    </body>
+</html>
