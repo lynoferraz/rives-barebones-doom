@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+    <head>
+        <link rel="stylesheet" href="./main.css" />
+    </head>
+    <body>
+        <div>
+            <table id="leaderboard" class="leaderboard">
+                <tr>
+                    <th>Rank</th>
+                    <th>User</th>
+                    <th>Timestamp</th>
+                    <th>Score</th>
+                    <th>Input Index</th>
+                </tr>
+            </table>
+        </div>
+        <script defer type="module">
+            import { renderLeaderboard } from "../dist/main.js";
+            renderLeaderboard();
+        </script>
+    </body>
+</html>

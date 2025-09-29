@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+    <head>
+        <link rel="stylesheet" href="./main.css" />
+    </head>
+    <body>
+        <div class="emulator-frame">
+            <iframe
+                id="emulator-iframe"
+                width="768"
+                height="800"
+                allowfullscreen
+                style="border: none;"
+            ></iframe>
+        </div>
+        <div id="connect-msg" style="text-align: center"></div>
+        <br />
+        <div id="submit-msg" style="text-align: center"></div>
+        <script defer type="module">
+            import { setupSubmit } from "../dist/main.js";
+            setupSubmit();
+        </script>
+    </body>
+</html>

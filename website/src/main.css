@@ -1,0 +1,32 @@
+.emulator-iframe {
+    text-align: center;
+    overflow: hidden;
+    background-color: black;
+    caret-color: transparent;
+    border: none;
+    position: absolute;
+}
+.emulator-frame {
+    max-width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+    padding-top: 2px;
+    height: 100%;
+}
+
+.leaderboard {
+    text-align: right;
+    border: 1px solid #131415;
+    max-width: fit-content;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+table.leaderboard th {
+    text-align: center;
+    background-color: #CCCCCC;
+}
+table.leaderboard tr:nth-child(even) {
+  background-color: #EEEEEE;
+}
