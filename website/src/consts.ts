@@ -1,10 +1,7 @@
 export const EMULATOR_URL = "https://emulator.rives.io";
-export const CARTRIDGE_ID = "721f735bbca3";
-export const TAPE_ID =
-  "721f735bbca3721f735bbca396345ea884a19e7d0a37ff849a6573525f741813";
-export const CARTRIDGES_URL = "https://app.rives.io/data/cartridges/721f735bbca3";
-export const TAPES_URL = "https://app.rives.io/tapes-data";
-export const RULES_PARAMS_URL = "https://app.rives.io/rules-params";
-export const CHAIN_ID = "0x343A";
-export const APPLICATION_ADDRESS = "0xfe835b36a96d3bb28500bc9000bc329a51048ef1";
+export const CARTRIDGES_URL = "https://raw.githubusercontent.com/lynoferraz/rives-barebones-doom/main/cartridges/freedoom.sqfs";
+export const CHAIN_ID = "0x7A69"; // anvil
+// export const CHAIN_ID = "0x343A"; // Cannon
+export const APPLICATION_ADDRESS = "0xE34467a44bD506b0bCc4474eb19617b156D93c29"; // Cartesapp blank Deployment
+// export const APPLICATION_ADDRESS = "0xb0c81199b3077abd59136094911d7d9ddee6374d"; // Deployment for hash 0xa0f5260dc03d4d3b6793d468c14cb30c6efa186251aa882051cdc1f38b5c51c9
 export const NODE_URL = "http://localhost:8080";
