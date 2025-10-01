@@ -1,11 +1,10 @@
 // External imports
-import { toHex, isHex, decodeAbiParameters, parseAbiParameters, WalletClient } from "viem";
+import { toHex, isHex, decodeAbiParameters, parseAbiParameters, WalletClient, toBytes, ByteArray } from "viem";
 import { Output } from "@cartesi/viem";
 
 // Local imports
 import {
   APPLICATION_ADDRESS,
-  CARTRIDGE_ID,
   CARTRIDGES_URL,
   CHAIN_ID,
   EMULATOR_URL,
@@ -15,11 +14,9 @@ import { connectWalletClient, submitGameplay } from "./lib/onchain.js";
 import { getL2Client } from "./utils/chain.js";
 
 interface EmulatorParams {
-  cartridgeId?: string;
   simple?: boolean;
   autoplay?: boolean;
-  tapeId?: string;
-  ruleId?: string;
+  tapeUrl?: string;
   args?: string;
   incardUrl?: string;
   entropy?: string;
@@ -55,6 +52,23 @@ async function getOutputs(
     application: appAddress,
   });
   return outputResponse.data;
+}
+
+async function getInput(
+  appAddress: string,
+  nodeAddress: string,
+  inputIndex: bigint,
+  filter?: RpcFilter,
+): Promise<Uint8Array> {
+  if (!nodeAddress) return new Uint8Array([]);
+  const client = await getL2Client(nodeAddress + "/rpc");
+  if (!client) return new Uint8Array([]);
+  const inputResponse = await client.getInput({
+    ...filter,
+    application: appAddress,
+    inputIndex
+  });
+  return toBytes(inputResponse.decodedData.payload);
 }
 
 function decodeVerificationNotice(output: Output): VerificationNotice | null {
@@ -119,8 +133,10 @@ export function setEmulatorUrl(params: EmulatorParams): void {
 
     let fullSrc = `${EMULATOR_URL}/#light=100`;
 
-    if (params.cartridgeId && CARTRIDGES_URL) {
-      fullSrc += `&cartridge=${CARTRIDGES_URL}`;
+    fullSrc += `&cartridge=${CARTRIDGES_URL}`;
+
+    if (params.tapeUrl !== undefined) {
+      fullSrc += `&tape=${params.tapeUrl}`;
     }
 
     if (params.simple !== undefined) {
@@ -172,7 +188,7 @@ async function getConnectedClient(): Promise<WalletConnection> {
   } catch (error) {
     console.error(error);
     handleConnectionError(msgDiv, error);
-    setEmulatorUrl({ cartridgeId: CARTRIDGE_ID, simple: true });
+    setEmulatorUrl({ simple: true });
     return { client: null, address: null };
   }
 }
@@ -210,11 +226,9 @@ async function handleGameplaySubmission(
     submitMsgDiv.innerHTML = "";
   }
 
-  console.log("params", params);
   const gameplayPayload = `0x${params.outhash}${toHex(params.tape).slice(2)}`;
 
   if (!isHex(gameplayPayload)) {
-    console.error("Invalid gameplay payload:", gameplayPayload);
     if (submitMsgDiv) {
       submitMsgDiv.innerHTML = "Error: Invalid payload format";
     }
@@ -291,7 +305,6 @@ export async function setupSubmit(): Promise<void> {
   // set entropy and config emulator
   const entropy = userAddress.toLowerCase();
   setEmulatorUrl({
-    cartridgeId: CARTRIDGE_ID,
     simple: true,
     entropy: entropy,
   });
@@ -317,6 +330,14 @@ function populateLeaderboardTable(table: HTMLTableElement, notices: Verification
   let rank = 1;
   for (const notice of notices) {
     const row = table.insertRow();
+    if (notice.user != undefined && notice.input_index != undefined) {
+      row.setAttribute('data-href', `/src/replay?user=${notice.user}&input_index=${notice.input_index}`);
+      row.addEventListener('click', function() {
+        if (this.dataset.href) {
+          window.location.href = this.dataset.href;
+        }
+      });
+    }
     row.insertCell().innerHTML = `${rank++}`;
     row.insertCell().innerHTML = notice.user || "Unknown";
     row.insertCell().innerHTML = timeToDateUTCString(Number(notice.timestamp));
@@ -417,4 +438,28 @@ export function formatDate(date: Date): string {
   const finalYear = year.substring(1);
 
   return `${month}/${day}/${finalYear}, ${time}`;
+}
+
+export async function setupReplay() {
+  const params = new URLSearchParams(window.location.search);
+  const user = params.get('user');
+  const inputIndex = params.get('input_index');
+  const inputData = await getInput(APPLICATION_ADDRESS, NODE_URL, BigInt(inputIndex || 0))
+
+  const tape = inputData.slice(32);
+  setEmulatorUrl({
+  });
+
+  const handleUploadedEvent = (e: MessageEvent) => {
+    const params = e.data;
+    if (params.rivemuUploaded) {
+      const emulator = document.getElementById("emulator-iframe") as HTMLIFrameElement;
+      if (emulator?.contentWindow) {
+        emulator.contentWindow?.postMessage({ rivemuUpload: true, tape: tape, autoPlay: true, entropy: user?.toLowerCase() }, "*");
+      }
+      window.removeEventListener("message",handleUploadedEvent,false,);
+    }
+  }
+  window.addEventListener("message",handleUploadedEvent,false,);
+  
 }
