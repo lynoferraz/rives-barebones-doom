@@ -61,9 +61,41 @@ Any time you regenerate the binaries, it will rebuild its flash drive, replace i
 
 ## Interacting with Rives Barebones with Doom
 
-### Rivemu
+### Using the Web Frontend
 
-To send Doom gameplay logs to the backend you should first run generate a gameplay log by playing the Freedoom cartridge with the [Rivemu](https://github.com/rives-io/riv/releases/tag/v0.3-rc16). You should download the appropriate binary (adjust the platform and architecture variables):
+You can use the web interface in the `website/` directory to play and submit gameplays directly from your browser.
+
+First, configure the constants in [website/src/consts.ts](website/src/consts.ts):
+
+```typescript
+// Network configuration
+export const CHAIN_ID = "0x7a69"; // Local devnet chain ID (31337 in hex)
+
+// Application contract address (from your node startup)
+export const APPLICATION_ADDRESS = "0xE34467a44bD506b0bCc4474eb19617b156D93c29";
+
+// Cartesi node URL
+export const NODE_URL = "http://localhost:8080";
+```
+
+Then build and serve the website:
+
+```shell
+cd website
+npm install
+npm run build
+npx serve -p 3000 --cors
+```
+
+Access the frontend at `http://localhost:3000`.
+
+### Using Rivemu
+
+Alternatively, you can send Doom gameplay logs to the backend by generating a gameplay log with [Rivemu](https://github.com/rives-io/riv/releases/tag/v0.3-rc16).
+
+#### Download Rivemu
+
+Download the appropriate binary (adjust the platform and architecture variables):
 
 ```shell
 PLATFORM=linux
@@ -78,7 +110,7 @@ Then you can play Freedoom with:
 ./rivemu cartridges/freedoom.sqfs
 ```
 
-### Submit the Gameplay
+#### Submit the Gameplay
 
 To submit the gameplay, you'll need to record the gameplay while playing the game. Additionally, to add security the backend requires the hash of the final outcard, and the entropy of the game will be tied to wallet that will submit the gameplay. With this in mind, you run the following command to generate a valid gameplay for submission (change the wallet address variable accordingly):
 
@@ -100,7 +132,7 @@ cast send --private-key ${PRIVATE_KEY} ${INPUTBOX_ADDRESS} "addInput(address,byt
 
 Note: if you are using the cartesi cli, you should add the `--rpc-url` pointing to cli's devnet `--rpc-url http://localhost:8080/anvil` and set the `APPLICATION_ADDRESS` with the value after you started the Node (the `cartesi run ...` command).
 
-### Get the Outputs
+#### Get the Outputs
 
 You can get the outputs with the commands defined next. We'll assume you are using the local devnet initiated on one of the previous steps (set the application address and blockchain configuration with the correct values). You'll need `curl`, `jq`, `xxd` tools.
 
