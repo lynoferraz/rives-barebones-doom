@@ -127,7 +127,7 @@ a:hover {
 /* Logo */
 .logo {
     display: block;
-    width: 160px;
+    width: 250px;
     height: auto;
     margin: 0 auto var(--spacing-sm) auto;
 }
