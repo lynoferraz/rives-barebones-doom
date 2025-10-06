@@ -1,14 +1,33 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8" />
-        <title>Simple Rives Frontend</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Rives - Doom Barebones</title>
+        <meta name="description" content="Play Doom and submit your gameplay to the leaderboard" />
+        <link rel="icon" type="image/x-icon" href="src/public/icon.ico" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="src/main.css" />
     </head>
     <body>
-        <h1>Simple Rives Frontend</h1>
-        <div>
-            <p><a href="src/submit.html">Play and submit</a></p>
-            <p><a href="src/leaderboard.html">Leaderboard</a></p>
-        </div>
+        <main>
+            <div class="overlay">
+                <header>
+                    <img src="src/public/logo.png" alt="Rives Logo" class="logo" width="256" height="auto" />
+                </header>
+
+                <div class="content-container">
+                    <div class="text-box">
+                        <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua eiusmod tempor incididunt ut labore et dolore magna aliqua eiusmod tempor incididunt ut labore et dolore magna aliqua eiusmod tempor incididunt ut labore et dolore magna aliqua eiusmod tempor incididunt ut labore et dolore magna aliqua eiusmod tempor incididunt ut labore et dolore magna aliqua.</p>
+                    </div>
+                    <nav class="ctaRow">
+                        <a class="cta cta--light" href="src/submit.html">PLAY AND SUBMIT</a>
+                        <a class="cta cta--purple" href="src/leaderboard.html">LEADERBOARD</a>
+                    </nav>
+                </div>
+            </div>
+        </main>
     </body>
 </html>

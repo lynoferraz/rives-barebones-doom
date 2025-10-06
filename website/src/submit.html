@@ -1,21 +1,32 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
-        <link rel="stylesheet" href="./main.css" />
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Play and Submit - Rives</title>
+        <link rel="icon" type="image/x-icon" href="public/icon.ico" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="main.css" />
     </head>
     <body>
-        <div class="emulator-frame">
-            <iframe
-                id="emulator-iframe"
-                width="768"
-                height="800"
-                allowfullscreen
-                style="border: none;"
-            ></iframe>
-        </div>
-        <div id="connect-msg" style="text-align: center"></div>
-        <br />
-        <div id="submit-msg" style="text-align: center"></div>
+        <nav class="back-button-container">
+            <a class="back-button" href="../index.html">← Back</a>
+        </nav>
+        <main class="submit-page">
+            <div class="emulator-frame">
+                <iframe
+                    id="emulator-iframe"
+                    title="Game Emulator"
+                    width="768"
+                    height="800"
+                    allowfullscreen
+                ></iframe>
+            </div>
+            <div id="connect-msg" class="submit-msg"></div>
+            <div id="submit-msg" class="submit-msg"></div>
+        </main>
         <script defer type="module">
             import { setupSubmit } from "../dist/main.js";
             setupSubmit();

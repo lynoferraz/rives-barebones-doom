@@ -1,4 +1,3 @@
-import "viem/window";
 import {
   isHex,
   fromHex,
@@ -25,7 +24,7 @@ import {
 } from "@cartesi/viem";
 import { NODE_URL } from "../consts.js";
 
-// Custom custom chain configuration using BLOCKCHAIN_URL
+// Custom chain configuration
 const customChain = defineChain({
   ...cannon,
   rpcUrls: {
@@ -41,46 +40,68 @@ chains[baseSepolia.id] = baseSepolia;
 chains[mainnet.id] = mainnet;
 chains[base.id] = base;
 
-export function getChain(chainId: number): Chain | null;
-export function getChain(chainId: string): Chain | null;
 export function getChain(chainId: number | string): Chain | null {
+  let numericChainId: number;
+
   if (typeof chainId === "string") {
-    if (!isHex(chainId)) return null;
-    chainId = fromHex(chainId, "number");
+    if (!isHex(chainId)) {
+      console.error(`Invalid hex chain ID: ${chainId}`);
+      return null;
+    }
+    numericChainId = fromHex(chainId, "number");
+  } else {
+    numericChainId = chainId;
   }
 
-  const chain = chains[chainId];
-  if (!chain) return null;
+  const chain = chains[numericChainId];
+  if (!chain) {
+    console.error(`Chain not found for ID: ${numericChainId}`);
+    return null;
+  }
 
   return chain;
 }
 
 export async function getClient(chainId: number) {
   const chain = getChain(chainId);
-  if (!chain) return null;
+  if (!chain) {
+    console.error("Cannot create client: chain not found");
+    return null;
+  }
   return createPublicClient({
-    chain: chain,
+    chain,
     transport: http(),
   }).extend(publicActionsL1());
 }
 
 export async function getWalletClient(chainId: number) {
-  if (!window.ethereum) return null;
+  if (!window.ethereum) {
+    console.error("Ethereum provider not found");
+    return null;
+  }
+
   const chain = getChain(chainId);
-  if (!chain) return null;
+  if (!chain) {
+    console.error("Cannot create wallet client: chain not found");
+    return null;
+  }
 
   const accounts = await window.ethereum.request({
     method: "eth_requestAccounts",
-  });
+  }) as `0x${string}`[];
+
   return createWalletClient({
-    account: accounts[0],
-    chain: chain,
+    account: accounts[0] as `0x${string}`,
+    chain,
     transport: custom(window.ethereum),
   }).extend(walletActionsL1());
 }
 
 export async function getL2Client(nodeAddress: string) {
-  if (!nodeAddress) return null;
+  if (!nodeAddress) {
+    console.error("Node address not provided");
+    return null;
+  }
   return createCartesiPublicClient({
     transport: http(nodeAddress),
   });

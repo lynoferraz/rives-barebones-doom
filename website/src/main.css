@@ -1,38 +1,285 @@
-.emulator-iframe {
-    text-align: center;
-    overflow: hidden;
-    background-color: black;
-    caret-color: transparent;
-    border: none;
-    position: absolute;
+/* ========================================
+   CSS Variables
+   ======================================== */
+:root {
+    /* Colors */
+    --color-black: #000000;
+    --color-white: #ffffff;
+    --color-dark: #111111;
+    --color-border-dark: #131415;
+    --color-purple: #a383ff;
+    --color-light-bg: #eceff3;
+
+    /* Transparent backgrounds */
+    --bg-dark-overlay: rgba(0, 0, 0, 0.45);
+    --bg-light-overlay: rgba(255, 255, 255, 0.6);
+    --bg-table-header: rgba(204, 204, 204, 0.25);
+    --bg-table-even: rgba(238, 238, 238, 0.12);
+    --bg-table-hover: rgba(187, 187, 187, 0.2);
+
+    /* Blur effects */
+    --blur-strong: blur(6px);
+    --blur-light: blur(3px);
+
+    /* Border radius */
+    --radius-small: 6px;
+    --radius-medium: 12px;
+
+    /* Shadows */
+    --shadow-small: 0 6px 14px rgba(0, 0, 0, 0.25);
+    --shadow-medium: 0 10px 20px rgba(0, 0, 0, 0.3);
+    --shadow-large: 0 10px 30px rgba(0, 0, 0, 0.35);
+
+    /* Spacing */
+    --spacing-xs: 2px;
+    --spacing-sm: 12px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 50px;
+
+    /* Typography */
+    --font-family: "Silkscreen", "Pixelify Sans", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    --font-weight-bold: 800;
+    --letter-spacing: 1px;
+
+    /* Transitions */
+    --transition-standard: 0.12s ease;
+
+    /* Z-index */
+    --z-fixed: 1000;
 }
-.emulator-frame {
-    max-width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-    position: relative;
-    padding-top: 2px;
+
+/* ========================================
+   Base Styles
+   ======================================== */
+html,
+body {
     height: 100%;
 }
 
+body {
+    margin: 0;
+    background: url("public/background.png") no-repeat center center fixed;
+    background-size: cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-family);
+}
+
+h1 {
+    margin: 8px 0 var(--spacing-sm) 0;
+}
+
+a {
+    color: var(--color-white);
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* ========================================
+   Layout Components
+   ======================================== */
+.content-container {
+    width: fit-content;
+    max-width: 85%;
+    margin: 0 auto;
+}
+
+.emulator-frame {
+    position: relative;
+    max-width: fit-content;
+    height: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-top: var(--spacing-xs);
+}
+
+.emulator-iframe {
+    position: absolute;
+    border: none;
+    background-color: var(--color-black);
+    overflow: hidden;
+    text-align: center;
+    caret-color: transparent;
+}
+
+/* ========================================
+   UI Components
+   ======================================== */
+
+/* Overlay */
+.overlay {
+    max-width: 640px;
+    width: calc(100% - 32px);
+    padding: var(--spacing-lg) 28px;
+    background: var(--bg-dark-overlay);
+    -webkit-backdrop-filter: var(--blur-strong);
+    backdrop-filter: var(--blur-strong);
+    border-radius: var(--radius-medium);
+    box-shadow: var(--shadow-large);
+    color: var(--color-white);
+    text-align: center;
+}
+
+/* Logo */
+.logo {
+    display: block;
+    width: 160px;
+    height: auto;
+    margin: 0 auto var(--spacing-sm) auto;
+}
+
+/* Text Box */
+.text-box {
+    width: 100%;
+    margin: var(--spacing-md) 0;
+    padding: 20px;
+    background: var(--bg-light-overlay);
+    -webkit-backdrop-filter: var(--blur-light);
+    backdrop-filter: var(--blur-light);
+    border-radius: var(--radius-small);
+    box-sizing: border-box;
+}
+
+.text-box p {
+    margin: 0;
+    color: var(--color-black);
+    line-height: 1.5;
+    text-align: center;
+}
+
+/* Buttons */
+.ctaRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: var(--spacing-xs);
+    margin-bottom: var(--spacing-xl);
+}
+
+.cta {
+    display: inline-block;
+    padding: var(--spacing-md) 36px;
+    border-radius: var(--radius-small);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--letter-spacing);
+    text-transform: uppercase;
+    text-decoration: none;
+    box-shadow: var(--shadow-small);
+    filter: saturate(0.95);
+    transition: transform var(--transition-standard),
+                box-shadow var(--transition-standard),
+                filter var(--transition-standard);
+}
+
+.cta:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    filter: saturate(1);
+}
+
+.cta--light {
+    background: var(--color-light-bg);
+    color: var(--color-dark);
+}
+
+.cta--purple {
+    background: var(--color-purple);
+    color: var(--color-dark);
+}
+
+.back-button-container {
+    position: fixed;
+    top: var(--spacing-md);
+    left: var(--spacing-md);
+    z-index: var(--z-fixed);
+}
+
+.back-button {
+    display: inline-block;
+    padding: var(--spacing-sm) var(--spacing-lg);
+    background: var(--color-purple);
+    color: var(--color-dark);
+    border-radius: var(--radius-small);
+    font-family: var(--font-family);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--letter-spacing);
+    text-transform: uppercase;
+    text-decoration: none;
+    box-shadow: var(--shadow-small);
+    filter: saturate(0.95);
+    transition: transform var(--transition-standard),
+                box-shadow var(--transition-standard),
+                filter var(--transition-standard);
+}
+
+.back-button:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+    color: var(--color-dark);
+    text-decoration: none;
+    filter: saturate(1);
+}
+
+/* Leaderboard */
 .leaderboard {
-    text-align: right;
-    border: 1px solid #131415;
     max-width: fit-content;
     margin-left: auto;
     margin-right: auto;
+    border: 1px solid var(--color-border-dark);
+    background: var(--bg-dark-overlay);
+    -webkit-backdrop-filter: var(--blur-strong);
+    backdrop-filter: var(--blur-strong);
+    color: var(--color-white);
+    font-family: var(--font-family);
+    text-align: right;
 }
 
-
-table.leaderboard th {
+.leaderboard th {
+    background-color: var(--bg-table-header);
+    color: var(--color-white);
     text-align: center;
-    background-color: #CCCCCC;
-}
-table.leaderboard tr:nth-child(even) {
-  background-color: #EEEEEE;
 }
 
-table.leaderboard tr:hover {
-  background-color: #BBBBBB;
-  cursor: pointer;
+.leaderboard tr:nth-child(even) {
+    background-color: var(--bg-table-even);
+}
+
+.leaderboard tr:hover {
+    background-color: var(--bg-table-hover);
+    cursor: pointer;
+}
+
+/* ========================================
+   Page-Specific Styles
+   ======================================== */
+
+/* Submit Page */
+.submit-page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md);
+    font-family: var(--font-family);
+    color: var(--color-white);
+}
+
+.submit-page--fullscreen {
+    min-height: 96vh;
+}
+
+.submit-page--fullscreen .emulator-iframe {
+    height: 96vh;
+}
+
+.submit-msg {
+    color: var(--color-white);
+    text-align: center;
 }

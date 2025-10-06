@@ -1,20 +1,34 @@
 <!doctype html>
-<html>
+<html lang="en">
     <head>
-        <link rel="stylesheet" href="./main.css" />
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Leaderboard - Rives</title>
+        <link rel="icon" type="image/x-icon" href="public/icon.ico" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet" />
+        <link rel="stylesheet" href="main.css" />
     </head>
     <body>
-        <div>
+        <nav class="back-button-container">
+            <a class="back-button" href="../index.html">← Back</a>
+        </nav>
+        <main>
             <table id="leaderboard" class="leaderboard">
-                <tr>
-                    <th>Rank</th>
-                    <th>User</th>
-                    <th>Timestamp</th>
-                    <th>Score</th>
-                    <th>Input Index</th>
-                </tr>
+                <thead>
+                    <tr>
+                        <th>Rank</th>
+                        <th>User</th>
+                        <th>Timestamp</th>
+                        <th>Score</th>
+                        <th>Input Index</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
             </table>
-        </div>
+        </main>
         <script defer type="module">
             import { renderLeaderboard } from "../dist/main.js";
             renderLeaderboard();
