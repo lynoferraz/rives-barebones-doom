@@ -15,7 +15,7 @@
     --bg-light-overlay: rgba(255, 255, 255, 0.6);
     --bg-table-header: rgba(204, 204, 204, 0.25);
     --bg-table-even: rgba(238, 238, 238, 0.12);
-    --bg-table-hover: rgba(187, 187, 187, 0.2);
+    --bg-table-hover: rgba(163, 131, 255, 0.6);
 
     /* Blur effects */
     --blur-strong: blur(6px);
@@ -38,7 +38,12 @@
     --spacing-xl: 50px;
 
     /* Typography */
-    --font-family: "Silkscreen", "Pixelify Sans", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    --font-family:
+        "Silkscreen", "Pixelify Sans", system-ui, -apple-system, Segoe UI,
+        Roboto, Helvetica, Arial, sans-serif;
+    --font-family2:
+        "Iosevka Web", SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
     --font-weight-bold: 800;
     --letter-spacing: 1px;
 
@@ -61,9 +66,6 @@ body {
     margin: 0;
     background: url("public/background.png") no-repeat center center fixed;
     background-size: cover;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     font-family: var(--font-family);
 }
 
@@ -97,20 +99,56 @@ a:hover {
     padding-top: var(--spacing-xs);
 }
 
-.emulator-iframe {
-    position: absolute;
+#emulator-iframe {
     border: none;
-    background-color: var(--color-black);
-    overflow: hidden;
-    text-align: center;
-    caret-color: transparent;
 }
 
 /* ========================================
    UI Components
    ======================================== */
 
+/* Header and footer */
+.header {
+    display: flex;
+    height: 30px;
+    text-align: center;
+    padding: var(--spacing-md) var(--spacing-md);
+    text-decoration: none;
+    align-items: center;
+}
+
+header a {
+    text-decoration: none;
+    text-align: center;
+    padding: 0px var(--spacing-md);
+}
+
+footer {
+    height: 30px;
+    padding: var(--spacing-md) 0px var(--spacing-md) 0px;
+    color: var(--color-white);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+}
+footer .left {
+    text-align: left;
+}
+footer .left a {
+    text-decoration: none;
+}
+footer .right {
+    display: flex;
+    align-items: center;
+}
+
 /* Overlay */
+main {
+    min-height: calc(100vh - 124px);
+    display: flex;
+    align-items: top;
+    justify-content: center;
+}
 .overlay {
     max-width: 640px;
     width: calc(100% - 32px);
@@ -132,11 +170,15 @@ a:hover {
     margin: 0 auto var(--spacing-sm) auto;
 }
 
+.subtitle {
+    font-size: 1.25rem;
+}
+
 /* Text Box */
 .text-box {
     width: 100%;
     margin: var(--spacing-md) 0;
-    padding: 20px;
+    padding: var(--spacing-md);
     background: var(--bg-light-overlay);
     -webkit-backdrop-filter: var(--blur-light);
     backdrop-filter: var(--blur-light);
@@ -148,7 +190,15 @@ a:hover {
     margin: 0;
     color: var(--color-black);
     line-height: 1.5;
-    text-align: center;
+    text-align: left;
+    white-space: pre-wrap;
+}
+.text-box p.info {
+    font-family: var(--font-family2);
+}
+.text-box a {
+    color: var(--color-black);
+    text-decoration: underline;
 }
 
 /* Buttons */
@@ -157,8 +207,8 @@ a:hover {
     justify-content: space-between;
     align-items: center;
     width: 100%;
-    margin-top: var(--spacing-xs);
-    margin-bottom: var(--spacing-xl);
+    padding-top: var(--spacing-sm);
+    /*margin-bottom: var(--spacing-xl);*/
 }
 
 .cta {
@@ -171,9 +221,10 @@ a:hover {
     text-decoration: none;
     box-shadow: var(--shadow-small);
     filter: saturate(0.95);
-    transition: transform var(--transition-standard),
-                box-shadow var(--transition-standard),
-                filter var(--transition-standard);
+    transition:
+        transform var(--transition-standard),
+        box-shadow var(--transition-standard),
+        filter var(--transition-standard);
 }
 
 .cta:hover {
@@ -192,7 +243,7 @@ a:hover {
     color: var(--color-dark);
 }
 
-.back-button-container {
+/*.back-button-container {
     position: fixed;
     top: var(--spacing-md);
     left: var(--spacing-md);
@@ -212,9 +263,10 @@ a:hover {
     text-decoration: none;
     box-shadow: var(--shadow-small);
     filter: saturate(0.95);
-    transition: transform var(--transition-standard),
-                box-shadow var(--transition-standard),
-                filter var(--transition-standard);
+    transition:
+        transform var(--transition-standard),
+        box-shadow var(--transition-standard),
+        filter var(--transition-standard);
 }
 
 .back-button:hover {
@@ -223,7 +275,7 @@ a:hover {
     color: var(--color-dark);
     text-decoration: none;
     filter: saturate(1);
-}
+}*/
 
 /* Leaderboard */
 .leaderboard {
@@ -249,9 +301,14 @@ a:hover {
     background-color: var(--bg-table-even);
 }
 
-.leaderboard tr:hover {
+.leaderboard tr:not(:first-child):hover {
     background-color: var(--bg-table-hover);
     cursor: pointer;
+}
+
+.leaderboard td {
+    padding: 0 var(--spacing-md);
+    text-align: right;
 }
 
 /* ========================================
@@ -260,7 +317,7 @@ a:hover {
 
 /* Submit Page */
 .submit-page {
-    min-height: 100vh;
+    /*min-height: 100vh;*/
     display: flex;
     flex-direction: column;
     align-items: center;

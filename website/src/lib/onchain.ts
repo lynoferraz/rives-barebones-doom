@@ -16,9 +16,10 @@ const inputBoxAbi = parseAbi([
 ]);
 
 export async function connectWalletClient(chainId: number | string) {
-  const chainIdNumber = typeof chainId === "string"
-    ? fromHex(chainId as `0x${string}`, "number")
-    : chainId;
+  const chainIdNumber =
+    typeof chainId === "string"
+      ? fromHex(chainId as `0x${string}`, "number")
+      : chainId;
   return await getWalletClient(chainIdNumber);
 }
 
@@ -37,11 +38,15 @@ export async function submitGameplay(
     throw new Error("Ethereum provider not available");
   }
 
-  const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' }) as `0x${string}`;
+  const chainIdHex = (await window.ethereum.request({
+    method: "eth_chainId",
+  })) as `0x${string}`;
   const currentChainId = fromHex(chainIdHex, "number");
 
   if (currentChainId !== walletClient.chain.id) {
-    throw new Error(`Wrong network. Please switch to ${walletClient.chain.name}`);
+    throw new Error(
+      `Wrong network, please switch to ${walletClient.chain.name}`,
+    );
   }
 
   const publicClient = createPublicClient({

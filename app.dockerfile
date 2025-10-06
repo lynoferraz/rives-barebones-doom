@@ -6,7 +6,7 @@ ARG IMAGE_TAG=3.22.1
 FROM --platform=linux/riscv64 ${IMAGE_NAME}:${IMAGE_TAG} AS builder
 
 # Install build essential
-RUN apk add alpine-sdk
+RUN apk add alpine-sdk clang clang-dev
 
 # Install guest tools and libcmt
 ARG MACHINE_GUEST_TOOLS_VERSION=0.17.1-r1
@@ -23,8 +23,7 @@ FROM builder AS build
 WORKDIR /home/app
 # COPY src/config config
 COPY src/ .
-ARG CONFIG_ENV=localhost
-RUN make CONFIG_ENV=${CONFIG_ENV}
+RUN make clean && make
 
 
 ################################

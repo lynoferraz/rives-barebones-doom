@@ -1,5 +1,13 @@
 // External imports
-import { toHex, isHex, decodeAbiParameters, parseAbiParameters, WalletClient, toBytes, ByteArray } from "viem";
+import {
+  toHex,
+  isHex,
+  decodeAbiParameters,
+  parseAbiParameters,
+  WalletClient,
+  toBytes,
+  ByteArray,
+} from "viem";
 import { Output } from "@cartesi/viem";
 
 // Local imports
@@ -66,7 +74,7 @@ async function getInput(
   const inputResponse = await client.getInput({
     ...filter,
     application: appAddress,
-    inputIndex
+    inputIndex,
   });
   return toBytes(inputResponse.decodedData.payload);
 }
@@ -75,13 +83,15 @@ function decodeVerificationNotice(output: Output): VerificationNotice | null {
   try {
     // Only process notices for leaderboard data
     const decodedData = output.decodedData as Record<string, unknown>;
-    const type: string = decodedData && decodedData.type ? (decodedData.type as string) : "";
+    const type: string =
+      decodedData && decodedData.type ? (decodedData.type as string) : "";
 
-    if (type.toLowerCase() !== 'notice') {
+    if (type.toLowerCase() !== "notice") {
       return null;
     }
 
-    const payload = decodedData && decodedData.payload ? (decodedData.payload as string) : "";
+    const payload =
+      decodedData && decodedData.payload ? (decodedData.payload as string) : "";
 
     if (!isHex(payload)) {
       return null;
@@ -89,8 +99,10 @@ function decodeVerificationNotice(output: Output): VerificationNotice | null {
 
     // Try to decode as verification notice
     const decoded = decodeAbiParameters(
-      parseAbiParameters("address user, uint256 timestamp, int256 score, uint256 input_index"),
-      payload as `0x${string}`
+      parseAbiParameters(
+        "address user, uint256 timestamp, int256 score, uint256 input_index",
+      ),
+      payload as `0x${string}`,
     );
 
     return {
@@ -111,7 +123,7 @@ function decodeVerificationNotice(output: Output): VerificationNotice | null {
  */
 export function setEmulatorUrl(params: EmulatorParams): void {
   try {
-    if (!params || typeof params !== 'object') {
+    if (!params || typeof params !== "object") {
       console.error("Invalid emulator parameters");
       return;
     }
@@ -127,7 +139,7 @@ export function setEmulatorUrl(params: EmulatorParams): void {
       return;
     }
 
-    let fullSrc = `${EMULATOR_URL}/#light=100`;
+    let fullSrc = `${EMULATOR_URL}/#`;
 
     fullSrc += `&cartridge=${CARTRIDGES_URL}`;
 
@@ -156,7 +168,6 @@ export function setEmulatorUrl(params: EmulatorParams): void {
     console.error("Error setting emulator URL:", error);
   }
 }
-
 
 interface WalletConnection {
   client: WalletClient | null;
@@ -190,7 +201,8 @@ async function getConnectedClient(): Promise<WalletConnection> {
       let msg = "Error connecting wallet";
       if (error instanceof Error) {
         const dotIndex = error.message.indexOf(".");
-        msg = dotIndex >= 0 ? error.message.substring(0, dotIndex) : error.message;
+        msg =
+          dotIndex >= 0 ? error.message.substring(0, dotIndex) : error.message;
       }
       msgDiv.innerHTML = `${msg} (Demo Version)`;
     }
@@ -198,7 +210,6 @@ async function getConnectedClient(): Promise<WalletConnection> {
     return { client: null, address: null };
   }
 }
-
 
 interface GameplayParams {
   rivemuOnFinish: boolean;
@@ -208,7 +219,7 @@ interface GameplayParams {
 
 async function handleGameplaySubmission(
   client: WalletClient,
-  params: GameplayParams
+  params: GameplayParams,
 ): Promise<void> {
   const submitMsgDiv = document.getElementById("submit-msg");
   if (submitMsgDiv) {
@@ -235,7 +246,8 @@ async function handleGameplaySubmission(
       let msg = "Error submitting";
       if (error instanceof Error) {
         const dotIndex = error.message.indexOf(".");
-        msg = dotIndex >= 0 ? error.message.substring(0, dotIndex) : error.message;
+        msg =
+          dotIndex >= 0 ? error.message.substring(0, dotIndex) : error.message;
       }
       submitMsgDiv.innerHTML = msg;
     }
@@ -246,7 +258,6 @@ async function handleGameplaySubmission(
  * Sets up wallet connection and gameplay submission functionality
  */
 export async function setupSubmit(): Promise<void> {
-
   // connection vars
   let client: WalletClient | null;
   let userAddress: string | null;
@@ -293,7 +304,10 @@ export async function setupSubmit(): Promise<void> {
   });
 }
 
-function populateLeaderboardTable(table: HTMLTableElement, notices: VerificationNotice[]): void {
+function populateLeaderboardTable(
+  table: HTMLTableElement,
+  notices: VerificationNotice[],
+): void {
   while (table.rows.length > 1) {
     table.deleteRow(1);
   }
@@ -301,21 +315,27 @@ function populateLeaderboardTable(table: HTMLTableElement, notices: Verification
   let rank = 1;
   for (const notice of notices) {
     const row = table.insertRow();
-    if (notice.user !== undefined && notice.input_index !== undefined) {
-      const replayUrl = `/src/replay?user=${notice.user}&input_index=${notice.input_index}`;
-      row.setAttribute('data-href', replayUrl);
-      row.addEventListener('click', function() {
-        const href = this.dataset.href;
-        if (href) {
-          window.location.href = href;
-        }
-      });
+    let user: string = "Unknown";
+    if (notice.user !== undefined) {
+      user = `${notice.user.slice(0, 6)}...${notice.user.substring(notice.user.length - 4, notice.user.length)}`;
+      if (notice.input_index !== undefined) {
+        const replayUrl = `/src/replay?user=${notice.user}&input_index=${notice.input_index}`;
+        row.setAttribute("data-href", replayUrl);
+        row.addEventListener("click", function () {
+          const href = this.dataset.href;
+          if (href) {
+            window.location.href = href;
+          }
+        });
+      }
     }
     row.insertCell().innerHTML = `${rank++}`;
-    row.insertCell().innerHTML = notice.user || "Unknown";
-    row.insertCell().innerHTML = formatDate(new Date(Number(notice.timestamp) * 1000));
+    row.insertCell().innerHTML = user;
+    row.insertCell().innerHTML = formatDate(
+      new Date(Number(notice.timestamp) * 1000),
+    );
     row.insertCell().innerHTML = `${notice.score}`;
-    row.insertCell().innerHTML = `${notice.input_index}`;
+    // row.insertCell().innerHTML = `${notice.input_index}`;
   }
 }
 
@@ -375,7 +395,6 @@ export async function renderLeaderboard(): Promise<void> {
 
     // Populate table with leaderboard data
     populateLeaderboardTable(table, verificationNotices);
-
   } catch (error) {
     console.error("Error rendering leaderboard:", error);
     while (table.rows.length > 1) {
@@ -416,8 +435,8 @@ function formatDate(date: Date): string {
 
 export async function setupReplay(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
-  const user = params.get('user');
-  const inputIndex = params.get('input_index');
+  const user = params.get("user");
+  const inputIndex = params.get("input_index");
 
   if (!inputIndex) {
     console.error("No input_index provided");
@@ -425,10 +444,14 @@ export async function setupReplay(): Promise<void> {
   }
 
   try {
-    const inputData = await getInput(APPLICATION_ADDRESS, NODE_URL, BigInt(inputIndex));
+    const inputData = await getInput(
+      APPLICATION_ADDRESS,
+      NODE_URL,
+      BigInt(inputIndex),
+    );
     const tape = inputData.slice(32);
 
-    setEmulatorUrl({ simple: true });
+    setEmulatorUrl({});
 
     const handleUploadedEvent = (e: MessageEvent) => {
       const eventData = e.data;
@@ -440,9 +463,9 @@ export async function setupReplay(): Promise<void> {
               rivemuUpload: true,
               tape,
               autoPlay: true,
-              entropy: user?.toLowerCase()
+              entropy: user?.toLowerCase(),
             },
-            "*"
+            "*",
           );
         }
         window.removeEventListener("message", handleUploadedEvent, false);

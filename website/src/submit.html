@@ -11,9 +11,15 @@
         <link rel="stylesheet" href="main.css" />
     </head>
     <body>
-        <nav class="back-button-container">
-            <a class="back-button" href="../index.html">← Back</a>
-        </nav>
+        <header class="header">
+            <a href="https://rives.io" target="_blank" rel="noopener noreferrer">
+                <img src="/src/public/rives-logo.png" alt="Rives.io" width="120" height="auto" />
+            </a>
+            <nav>
+                <a class="nav-item" href="/src/index.html">Home</a>
+                <a class="nav-item" href="/src/leaderboard.html">Leaderboard</a>
+            </nav>
+        </header>
         <main class="submit-page">
             <div class="emulator-frame">
                 <iframe
@@ -27,6 +33,14 @@
             <div id="connect-msg" class="submit-msg"></div>
             <div id="submit-msg" class="submit-msg"></div>
         </main>
+        <footer>
+            <div class="left"><a href="https://rives.io" target="_blank" rel="noopener noreferrer">&copy; 2025 RIVES</a></div>
+            <div class="right">
+                Powered by&nbsp;<a href="https://cartesi.io" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center">
+                    <img src="/src/public/cartesi-logo.svg" alt="Cartesi.io" width="auto" height="30" />
+                </a>
+            </div>
+        </footer>
         <script defer type="module">
             import { setupSubmit } from "../dist/main.js";
             setupSubmit();

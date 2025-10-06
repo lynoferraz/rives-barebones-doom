@@ -86,9 +86,18 @@ export async function getWalletClient(chainId: number) {
     return null;
   }
 
-  const accounts = await window.ethereum.request({
+  const chainIdHex = (await window.ethereum.request({
+    method: "eth_chainId",
+  })) as `0x${string}`;
+  const currentChainId = fromHex(chainIdHex, "number");
+
+  if (currentChainId !== chain.id) {
+    throw new Error(`Wrong network, please switch to ${chain.name}`);
+  }
+
+  const accounts = (await window.ethereum.request({
     method: "eth_requestAccounts",
-  }) as `0x${string}`[];
+  })) as `0x${string}`[];
 
   return createWalletClient({
     account: accounts[0] as `0x${string}`,
