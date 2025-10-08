@@ -59,6 +59,48 @@ cartesapp node --log-level debug --dev --dev-watch-patterns='*' --dev-path='./sr
 
 Any time you regenerate the binaries, it will rebuild its flash drive, replace it on the current snapshot of the machine, and force a reload on the app.
 
+### Running the Testnet version
+
+To run the node with the version that was deployed on testnet you should get the snapshot and run the node pointing to the testnet deployment. First, download the latest snapshot:
+
+```shell
+rm -rf .cartesi
+mkdir -p .cartesi/image
+RIVES_DOOM_VERSION=0.0.1
+wget -qO- https://github.com/lynoferraz/rives-barebones-doom/releases/download/v${RIVES_DOOM_VERSION}/rives-barebones-doom-snapshot.tar.gz | tar zxf - -C .cartesi/image/
+```
+
+Then define the `CARTESI_AUTH_PRIVATE_KEY`, `RPC_URL`, and `RPC_WS` (additionally `APPLICATION_ADDRESS` and `CONSENSUS_ADDRESS`) environment variables. We suggest creating a .env.testnet file (and running `source .env.testnet`):
+
+```shell
+RPC_URL=
+RPC_WS=
+CARTESI_BLOCKCHAIN_ID=11155111
+APPLICATION_ADDRESS=0x27c2cb273D92F9c318696124018FC7aDB8873122
+CONSENSUS_ADDRESS=0x0870B1606F58F2F3feef7AD8A026E1543126F5BD
+```
+
+Finally run the following command to start the node:
+
+```shell
+cartesapp node --log-level debug \
+  --config application_address=${APPLICATION_ADDRESS} --config consensus_address=${CONSENSUS_ADDRESS} \
+  --config rpc_url=${RPC_URL} --config rpc_ws=${RPC_WS} --env=CARTESI_BLOCKCHAIN_ID=${CARTESI_BLOCKCHAIN_ID}\
+  --env=CARTESI_BLOCKCHAIN_DEFAULT_BLOCK=finalized \
+  --env=CARTESI_FEATURE_CLAIM_SUBMISSION_ENABLED=false
+```
+
+Some rpc providers may restrict the max range of blocks that can be queried. You can set this with `--env=CARTESI_BLOCKCHAIN_MAX_BLOCK_RANGE=<max_blocks>`.
+
+Note: the application was deployed using the following command:
+
+```shell
+cartesapp deploy --log-level debug \
+  --config application_address= --config consensus_address= \
+  --config rpc_url=${RPC_URL} --config rpc_ws=${RPC_WS} \
+  --env=CARTESI_AUTH_PRIVATE_KEY=${CARTESI_AUTH_PRIVATE_KEY}
+```
+
 ## Interacting with Rives Barebones with Doom
 
 ### Using the Web Frontend

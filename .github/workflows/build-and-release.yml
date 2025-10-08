@@ -27,6 +27,12 @@ jobs:
         run: |
           cartesapp build --log-level debug
 
+      - name: Flash Drives sha256sum
+        run: |
+          sha256sum .cartesi/app.sqfs
+          sha256sum .cartesi/merkle.ext2
+          sha256sum .cartesi/root.ext2
+
       - name: Test 1st time
         run: |
           cartesapp test --cartesi-machine --log-level debug
