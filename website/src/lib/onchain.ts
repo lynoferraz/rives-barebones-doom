@@ -5,49 +5,48 @@ import {
   WalletClient,
   parseAbi,
 } from "viem";
-import "viem/window";
 import { getWalletClient } from "../utils/chain.js";
 import { APPLICATION_ADDRESS } from "../consts.js";
 
-//
-// Consts
-//
-const INPUT_BOX_ADDRESS = "0xc70074BDD26d8cF983Ca6A5b89b8db52D5850051";
+// Cartesi InputBox contract address (constant across deployments)
+const INPUT_BOX_ADDRESS = "0xc70074BDD26d8cF983Ca6A5b89b8db52D5850051" as const;
 
-const inputBoxRawAbi = [
+const inputBoxAbi = parseAbi([
   "function addInput(address _app, bytes payload) payable",
-];
-
-const inputBoxAbi = parseAbi(inputBoxRawAbi);
+]);
 
 export async function connectWalletClient(chainId: number | string) {
-  const chainIdNumber = typeof chainId === "string" ? fromHex(chainId as `0x${string}`, "number") : chainId;
+  const chainIdNumber =
+    typeof chainId === "string"
+      ? fromHex(chainId as `0x${string}`, "number")
+      : chainId;
   return await getWalletClient(chainIdNumber);
 }
 
-//
-// Submit
-//
 export async function submitGameplay(
   walletClient: WalletClient,
   payload: `0x${string}`,
 ): Promise<void> {
+  if (!payload.startsWith("0x") || payload.length <= 2) {
+    throw new Error("Invalid payload format");
+  }
   if (!walletClient || !walletClient.chain) {
     throw new Error("No connected wallet");
   }
 
   if (!window.ethereum) {
-    throw new Error("No ethereum provider available");
+    throw new Error("Ethereum provider not available");
   }
 
-  const chainIdHex = await window.ethereum.request({ method: 'eth_chainId' }) as `0x${string}`;
-  if (!chainIdHex) {
-    throw new Error("No chain ID available");
-  }
-
+  const chainIdHex = (await window.ethereum.request({
+    method: "eth_chainId",
+  })) as `0x${string}`;
   const currentChainId = fromHex(chainIdHex, "number");
+
   if (currentChainId !== walletClient.chain.id) {
-    throw new Error("Wallet on wrong chain");
+    throw new Error(
+      `Wrong network, please switch to ${walletClient.chain.name}`,
+    );
   }
 
   const publicClient = createPublicClient({
@@ -59,7 +58,7 @@ export async function submitGameplay(
 
   const { request } = await publicClient.simulateContract({
     account: address,
-    address: INPUT_BOX_ADDRESS as `0x${string}`,
+    address: INPUT_BOX_ADDRESS,
     abi: inputBoxAbi,
     functionName: "addInput",
     args: [APPLICATION_ADDRESS, payload],

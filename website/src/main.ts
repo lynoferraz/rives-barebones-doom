@@ -1,5 +1,12 @@
 // External imports
-import { toHex, isHex, decodeAbiParameters, parseAbiParameters, WalletClient, toBytes, ByteArray } from "viem";
+import {
+  toHex,
+  isHex,
+  decodeAbiParameters,
+  parseAbiParameters,
+  WalletClient,
+  toBytes,
+} from "viem";
 import { Output } from "@cartesi/viem";
 
 // Local imports
@@ -66,7 +73,7 @@ async function getInput(
   const inputResponse = await client.getInput({
     ...filter,
     application: appAddress,
-    inputIndex
+    inputIndex,
   });
   return toBytes(inputResponse.decodedData.payload);
 }
@@ -75,13 +82,15 @@ function decodeVerificationNotice(output: Output): VerificationNotice | null {
   try {
     // Only process notices for leaderboard data
     const decodedData = output.decodedData as Record<string, unknown>;
-    const type: string = decodedData && decodedData.type ? (decodedData.type as string) : "";
+    const type: string =
+      decodedData && decodedData.type ? (decodedData.type as string) : "";
 
-    if (type.toLowerCase() !== 'notice') {
+    if (type.toLowerCase() !== "notice") {
       return null;
     }
 
-    const payload = decodedData && decodedData.payload ? (decodedData.payload as string) : "";
+    const payload =
+      decodedData && decodedData.payload ? (decodedData.payload as string) : "";
 
     if (!isHex(payload)) {
       return null;
@@ -89,8 +98,10 @@ function decodeVerificationNotice(output: Output): VerificationNotice | null {
 
     // Try to decode as verification notice
     const decoded = decodeAbiParameters(
-      parseAbiParameters("address user, uint256 timestamp, int256 score, uint256 input_index"),
-      payload as `0x${string}`
+      parseAbiParameters(
+        "address user, uint256 timestamp, int256 score, uint256 input_index",
+      ),
+      payload as `0x${string}`,
     );
 
     return {
@@ -105,23 +116,19 @@ function decodeVerificationNotice(output: Output): VerificationNotice | null {
   }
 }
 
-function validateEmulatorParams(params: EmulatorParams): void {
-  if (!params || typeof params !== 'object') {
-    throw new Error("Invalid emulator parameters");
-  }
-}
-
 /**
  * Sets the emulator iframe URL with the provided parameters
  * @param params - Configuration parameters for the emulator
  */
 export function setEmulatorUrl(params: EmulatorParams): void {
   try {
-    validateEmulatorParams(params);
+    if (!params || typeof params !== "object") {
+      console.error("Invalid emulator parameters");
+      return;
+    }
 
-    const emulator = document.getElementById("emulator-iframe") as HTMLIFrameElement;
-
-    if (!emulator) {
+    const emulator = document.getElementById("emulator-iframe");
+    if (!emulator || !(emulator instanceof HTMLIFrameElement)) {
       console.error("Emulator iframe not found");
       return;
     }
@@ -131,7 +138,7 @@ export function setEmulatorUrl(params: EmulatorParams): void {
       return;
     }
 
-    let fullSrc = `${EMULATOR_URL}/#light=100`;
+    let fullSrc = `${EMULATOR_URL}/#`;
 
     fullSrc += `&cartridge=${CARTRIDGES_URL}`;
 
@@ -161,7 +168,6 @@ export function setEmulatorUrl(params: EmulatorParams): void {
   }
 }
 
-
 interface WalletConnection {
   client: WalletClient | null;
   address: string | null;
@@ -182,32 +188,25 @@ async function getConnectedClient(): Promise<WalletConnection> {
     }
 
     const [address] = await currClient.requestAddresses();
-    updateConnectionMessage(msgDiv, address, currClient.chain.name);
+    if (msgDiv) {
+      const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
+      msgDiv.innerHTML = `Connected with ${shortAddress} on ${currClient.chain.name}`;
+    }
 
     return { client: currClient, address: address };
   } catch (error) {
     console.error(error);
-    handleConnectionError(msgDiv, error);
+    if (msgDiv) {
+      let msg = "Error connecting wallet";
+      if (error instanceof Error) {
+        const dotIndex = error.message.indexOf(".");
+        msg =
+          dotIndex >= 0 ? error.message.substring(0, dotIndex) : error.message;
+      }
+      msgDiv.innerHTML = `${msg} (Demo Version)`;
+    }
     setEmulatorUrl({ simple: true });
     return { client: null, address: null };
-  }
-}
-
-function updateConnectionMessage(msgDiv: HTMLElement | null, address: string, chainName: string): void {
-  if (msgDiv) {
-    const shortAddress = `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
-    msgDiv.innerHTML = `Connected with ${shortAddress} on ${chainName}`;
-  }
-}
-
-function handleConnectionError(msgDiv: HTMLElement | null, error: unknown): void {
-  let msg = "Error connecting wallet";
-  if (error instanceof Error) {
-    const indexDot = error.message.indexOf(".");
-    msg = indexDot >= 0 ? error.message.substring(0, indexDot) : error.message;
-  }
-  if (msgDiv) {
-    msgDiv.innerHTML = `${msg} (Demo Version)`;
   }
 }
 
@@ -219,7 +218,7 @@ interface GameplayParams {
 
 async function handleGameplaySubmission(
   client: WalletClient,
-  params: GameplayParams
+  params: GameplayParams,
 ): Promise<void> {
   const submitMsgDiv = document.getElementById("submit-msg");
   if (submitMsgDiv) {
@@ -242,23 +241,15 @@ async function handleGameplaySubmission(
     }
   } catch (error) {
     console.error(error);
-    let msg = "Error submitting";
-    if (error instanceof Error) {
-      const indexDot = error.message.indexOf(".");
-      msg = indexDot >= 0 ? error.message.substring(0, indexDot) : error.message;
-    }
     if (submitMsgDiv) {
+      let msg = "Error submitting";
+      if (error instanceof Error) {
+        const dotIndex = error.message.indexOf(".");
+        msg =
+          dotIndex >= 0 ? error.message.substring(0, dotIndex) : error.message;
+      }
       submitMsgDiv.innerHTML = msg;
     }
-  }
-}
-
-function setupWalletEventListeners(
-  updateWalletConnection: () => Promise<void>
-): void {
-  if (window.ethereum) {
-    window.ethereum.on("chainChanged", updateWalletConnection);
-    window.ethereum.on("accountsChanged", updateWalletConnection);
   }
 }
 
@@ -266,7 +257,6 @@ function setupWalletEventListeners(
  * Sets up wallet connection and gameplay submission functionality
  */
 export async function setupSubmit(): Promise<void> {
-
   // connection vars
   let client: WalletClient | null;
   let userAddress: string | null;
@@ -278,7 +268,10 @@ export async function setupSubmit(): Promise<void> {
   };
 
   // Set wallet event listeners
-  setupWalletEventListeners(updateWalletConnection);
+  if (window.ethereum) {
+    window.ethereum.on("chainChanged", updateWalletConnection);
+    window.ethereum.on("accountsChanged", updateWalletConnection);
+  }
 
   // get connected wallet
   const connectedClient = await getConnectedClient();
@@ -310,39 +303,38 @@ export async function setupSubmit(): Promise<void> {
   });
 }
 
-function clearLeaderboardTable(table: HTMLTableElement): void {
+function populateLeaderboardTable(
+  table: HTMLTableElement,
+  notices: VerificationNotice[],
+): void {
   while (table.rows.length > 1) {
     table.deleteRow(1);
   }
-}
-
-function showLeaderboardMessage(table: HTMLTableElement, message: string, colSpan: number = 5): void {
-  clearLeaderboardTable(table);
-  const row = table.insertRow();
-  const cell = row.insertCell();
-  cell.colSpan = colSpan;
-  cell.innerHTML = message;
-}
-
-function populateLeaderboardTable(table: HTMLTableElement, notices: VerificationNotice[]): void {
-  clearLeaderboardTable(table);
 
   let rank = 1;
   for (const notice of notices) {
     const row = table.insertRow();
-    if (notice.user != undefined && notice.input_index != undefined) {
-      row.setAttribute('data-href', `/src/replay?user=${notice.user}&input_index=${notice.input_index}`);
-      row.addEventListener('click', function() {
-        if (this.dataset.href) {
-          window.location.href = this.dataset.href;
-        }
-      });
+    let user: string = "Unknown";
+    if (notice.user !== undefined) {
+      user = `${notice.user.slice(0, 6)}...${notice.user.substring(notice.user.length - 4, notice.user.length)}`;
+      if (notice.input_index !== undefined) {
+        const replayUrl = `/src/replay?user=${notice.user}&input_index=${notice.input_index}`;
+        row.setAttribute("data-href", replayUrl);
+        row.addEventListener("click", function () {
+          const href = this.dataset.href;
+          if (href) {
+            window.location.href = href;
+          }
+        });
+      }
     }
     row.insertCell().innerHTML = `${rank++}`;
-    row.insertCell().innerHTML = notice.user || "Unknown";
-    row.insertCell().innerHTML = timeToDateUTCString(Number(notice.timestamp));
+    row.insertCell().innerHTML = user;
+    row.insertCell().innerHTML = formatDate(
+      new Date(Number(notice.timestamp) * 1000),
+    );
     row.insertCell().innerHTML = `${notice.score}`;
-    row.insertCell().innerHTML = `${notice.input_index}`;
+    // row.insertCell().innerHTML = `${notice.input_index}`;
   }
 }
 
@@ -350,9 +342,8 @@ function populateLeaderboardTable(table: HTMLTableElement, notices: Verification
  * Renders the leaderboard table with verification notices from the Cartesi node
  */
 export async function renderLeaderboard(): Promise<void> {
-  const table: HTMLTableElement = document.getElementById("leaderboard") as HTMLTableElement;
-
-  if (!table) {
+  const table = document.getElementById("leaderboard");
+  if (!table || !(table instanceof HTMLTableElement)) {
     console.error("Leaderboard table not found");
     return;
   }
@@ -391,27 +382,28 @@ export async function renderLeaderboard(): Promise<void> {
     });
 
     if (verificationNotices.length === 0) {
-      showLeaderboardMessage(table, "No leaderboard data available");
+      while (table.rows.length > 1) {
+        table.deleteRow(1);
+      }
+      const row = table.insertRow();
+      const cell = row.insertCell();
+      cell.colSpan = 5;
+      cell.innerHTML = "No leaderboard data available";
       return;
     }
 
     // Populate table with leaderboard data
     populateLeaderboardTable(table, verificationNotices);
-
   } catch (error) {
     console.error("Error rendering leaderboard:", error);
-    showLeaderboardMessage(table, "Error loading leaderboard data");
+    while (table.rows.length > 1) {
+      table.deleteRow(1);
+    }
+    const row = table.insertRow();
+    const cell = row.insertCell();
+    cell.colSpan = 5;
+    cell.innerHTML = "Error loading leaderboard data";
   }
-}
-
-/**
- * Converts a timestamp to a UTC date string
- * @param time - Unix timestamp in seconds
- * @returns Formatted date string
- */
-export function timeToDateUTCString(time: number): string {
-  const date = new Date(Number(time) * 1000);
-  return formatDate(date);
 }
 
 /**
@@ -419,7 +411,7 @@ export function timeToDateUTCString(time: number): string {
  * @param date - Date object to format
  * @returns Formatted date string
  */
-export function formatDate(date: Date): string {
+function formatDate(date: Date): string {
   const options: Intl.DateTimeFormatOptions = {
     year: "numeric",
     month: "short",
@@ -440,26 +432,47 @@ export function formatDate(date: Date): string {
   return `${month}/${day}/${finalYear}, ${time}`;
 }
 
-export async function setupReplay() {
+export async function setupReplay(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
-  const user = params.get('user');
-  const inputIndex = params.get('input_index');
-  const inputData = await getInput(APPLICATION_ADDRESS, NODE_URL, BigInt(inputIndex || 0))
+  const user = params.get("user");
+  const inputIndex = params.get("input_index");
 
-  const tape = inputData.slice(32);
-  setEmulatorUrl({
-  });
-
-  const handleUploadedEvent = (e: MessageEvent) => {
-    const params = e.data;
-    if (params.rivemuUploaded) {
-      const emulator = document.getElementById("emulator-iframe") as HTMLIFrameElement;
-      if (emulator?.contentWindow) {
-        emulator.contentWindow?.postMessage({ rivemuUpload: true, tape: tape, autoPlay: true, entropy: user?.toLowerCase() }, "*");
-      }
-      window.removeEventListener("message",handleUploadedEvent,false,);
-    }
+  if (!inputIndex) {
+    console.error("No input_index provided");
+    return;
   }
-  window.addEventListener("message",handleUploadedEvent,false,);
-  
+
+  try {
+    const inputData = await getInput(
+      APPLICATION_ADDRESS,
+      NODE_URL,
+      BigInt(inputIndex),
+    );
+    const tape = inputData.slice(32);
+
+    setEmulatorUrl({});
+
+    const handleUploadedEvent = (e: MessageEvent) => {
+      const eventData = e.data;
+      if (eventData?.rivemuUploaded) {
+        const emulator = document.getElementById("emulator-iframe");
+        if (emulator instanceof HTMLIFrameElement && emulator.contentWindow) {
+          emulator.contentWindow.postMessage(
+            {
+              rivemuUpload: true,
+              tape,
+              autoPlay: true,
+              entropy: user?.toLowerCase(),
+            },
+            "*",
+          );
+        }
+        window.removeEventListener("message", handleUploadedEvent, false);
+      }
+    };
+
+    window.addEventListener("message", handleUploadedEvent, false);
+  } catch (error) {
+    console.error("Error setting up replay:", error);
+  }
 }

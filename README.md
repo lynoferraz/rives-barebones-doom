@@ -59,11 +59,85 @@ cartesapp node --log-level debug --dev --dev-watch-patterns='*' --dev-path='./sr
 
 Any time you regenerate the binaries, it will rebuild its flash drive, replace it on the current snapshot of the machine, and force a reload on the app.
 
+### Running the Testnet version
+
+To run the node with the version that was deployed on testnet you should get the snapshot and run the node pointing to the testnet deployment. First, download the latest snapshot:
+
+```shell
+rm -rf .cartesi
+mkdir -p .cartesi/image
+RIVES_DOOM_VERSION=0.0.1
+wget -qO- https://github.com/lynoferraz/rives-barebones-doom/releases/download/v${RIVES_DOOM_VERSION}/rives-barebones-doom-snapshot.tar.gz | tar zxf - -C .cartesi/image/
+```
+
+Then define the `CARTESI_AUTH_PRIVATE_KEY`, `RPC_URL`, and `RPC_WS` (additionally `APPLICATION_ADDRESS` and `CONSENSUS_ADDRESS`) environment variables. We suggest creating a .env.testnet file (and running `source .env.testnet`):
+
+```shell
+RPC_URL=
+RPC_WS=
+CARTESI_BLOCKCHAIN_ID=11155111
+APPLICATION_ADDRESS=0x27c2cb273D92F9c318696124018FC7aDB8873122
+CONSENSUS_ADDRESS=0x0870B1606F58F2F3feef7AD8A026E1543126F5BD
+```
+
+Finally run the following command to start the node:
+
+```shell
+cartesapp node --log-level debug \
+  --config application_address=${APPLICATION_ADDRESS} --config consensus_address=${CONSENSUS_ADDRESS} \
+  --config rpc_url=${RPC_URL} --config rpc_ws=${RPC_WS} --env=CARTESI_BLOCKCHAIN_ID=${CARTESI_BLOCKCHAIN_ID}\
+  --env=CARTESI_BLOCKCHAIN_DEFAULT_BLOCK=finalized \
+  --env=CARTESI_FEATURE_CLAIM_SUBMISSION_ENABLED=false
+```
+
+Some rpc providers may restrict the max range of blocks that can be queried. You can set this with `--env=CARTESI_BLOCKCHAIN_MAX_BLOCK_RANGE=<max_blocks>`.
+
+Note: the application was deployed using the following command:
+
+```shell
+cartesapp deploy --log-level debug \
+  --config application_address= --config consensus_address= \
+  --config rpc_url=${RPC_URL} --config rpc_ws=${RPC_WS} \
+  --env=CARTESI_AUTH_PRIVATE_KEY=${CARTESI_AUTH_PRIVATE_KEY}
+```
+
 ## Interacting with Rives Barebones with Doom
 
-### Rivemu
+### Using the Web Frontend
 
-To send Doom gameplay logs to the backend you should first run generate a gameplay log by playing the Freedoom cartridge with the [Rivemu](https://github.com/rives-io/riv/releases/tag/v0.3-rc16). You should download the appropriate binary (adjust the platform and architecture variables):
+You can use the web interface in the `website/` directory to play and submit gameplays directly from your browser.
+
+First, configure the constants in [website/src/consts.ts](website/src/consts.ts):
+
+```typescript
+// Network configuration
+export const CHAIN_ID = "0x7a69"; // Local devnet chain ID (31337 in hex)
+
+// Application contract address (from your node startup)
+export const APPLICATION_ADDRESS = "0xE34467a44bD506b0bCc4474eb19617b156D93c29";
+
+// Cartesi node URL
+export const NODE_URL = "http://localhost:8080";
+```
+
+Then build and serve the website:
+
+```shell
+cd website
+npm install
+npm run build
+npm run dev
+```
+
+Access the frontend at `http://localhost:3000`.
+
+### Using Rivemu
+
+Alternatively, you can send Doom gameplay logs to the backend by generating a gameplay log with [Rivemu](https://github.com/rives-io/riv/releases/tag/v0.3-rc16).
+
+#### Download Rivemu
+
+Download the appropriate binary (adjust the platform and architecture variables):
 
 ```shell
 PLATFORM=linux
@@ -78,7 +152,7 @@ Then you can play Freedoom with:
 ./rivemu cartridges/freedoom.sqfs
 ```
 
-### Submit the Gameplay
+#### Submit the Gameplay
 
 To submit the gameplay, you'll need to record the gameplay while playing the game. Additionally, to add security the backend requires the hash of the final outcard, and the entropy of the game will be tied to wallet that will submit the gameplay. With this in mind, you run the following command to generate a valid gameplay for submission (change the wallet address variable accordingly):
 
@@ -100,7 +174,7 @@ cast send --private-key ${PRIVATE_KEY} ${INPUTBOX_ADDRESS} "addInput(address,byt
 
 Note: if you are using the cartesi cli, you should add the `--rpc-url` pointing to cli's devnet `--rpc-url http://localhost:8080/anvil` and set the `APPLICATION_ADDRESS` with the value after you started the Node (the `cartesi run ...` command).
 
-### Get the Outputs
+#### Get the Outputs
 
 You can get the outputs with the commands defined next. We'll assume you are using the local devnet initiated on one of the previous steps (set the application address and blockchain configuration with the correct values). You'll need `curl`, `jq`, `xxd` tools.
 
