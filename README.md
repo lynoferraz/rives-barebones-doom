@@ -66,7 +66,7 @@ To run the node with the version that was deployed on testnet you should get the
 ```shell
 rm -rf .cartesi
 mkdir -p .cartesi/image
-RIVES_DOOM_VERSION=0.0.1
+RIVES_DOOM_VERSION=0.0.2
 wget -qO- https://github.com/lynoferraz/rives-barebones-doom/releases/download/v${RIVES_DOOM_VERSION}/rives-barebones-doom-snapshot.tar.gz | tar zxf - -C .cartesi/image/
 ```
 
