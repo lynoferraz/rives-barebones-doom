@@ -28,7 +28,7 @@ jobs:
         run: |
           rm src/consts.ts
           for var in $ENV_VARIABLES; do
-            echo export const $var = "${!var}" >> src/consts.ts
+            echo "export const $var = '${!var}'" >> src/consts.ts
           done
           echo Final src/consts.ts:
           cat src/consts.ts
