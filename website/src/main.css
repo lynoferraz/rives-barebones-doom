@@ -21,10 +21,6 @@
     --blur-strong: blur(6px);
     --blur-light: blur(3px);
 
-    /* Border radius */
-    --radius-small: 6px;
-    --radius-medium: 12px;
-
     /* Shadows */
     --shadow-small: 0 6px 14px rgba(0, 0, 0, 0.25);
     --shadow-medium: 0 10px 20px rgba(0, 0, 0, 0.3);
@@ -111,6 +107,7 @@ a:hover {
 .header {
     display: flex;
     height: 30px;
+    width: 100%;
     text-align: center;
     padding: var(--spacing-md) var(--spacing-md);
     text-decoration: none;
@@ -156,7 +153,6 @@ main {
     background: var(--bg-dark-overlay);
     -webkit-backdrop-filter: var(--blur-strong);
     backdrop-filter: var(--blur-strong);
-    border-radius: var(--radius-medium);
     box-shadow: var(--shadow-large);
     color: var(--color-white);
     text-align: center;
@@ -182,7 +178,6 @@ main {
     background: var(--bg-light-overlay);
     -webkit-backdrop-filter: var(--blur-light);
     backdrop-filter: var(--blur-light);
-    border-radius: var(--radius-small);
     box-sizing: border-box;
 }
 
@@ -214,7 +209,6 @@ main {
 .cta {
     display: inline-block;
     padding: var(--spacing-md) 36px;
-    border-radius: var(--radius-small);
     font-weight: var(--font-weight-bold);
     letter-spacing: var(--letter-spacing);
     text-transform: uppercase;

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "node ./build.cjs && cp -r src/public dist && cpx src/*.{html,css,js} dist",
-    "dev": "cpx -wv src/*.{html,css,js} dist & cpx -wv src/public/*.{ico,svg,png,jpg} dist/public & serve dist -p 3000 --cors",
+    "dev": "cpx -wv src/*.{html,css,js} dist & cpx -wv src/public/*.{ico,svg,png,jpg} dist/public & watch 'node ./build.cjs' ./src & serve dist -p 3000 --cors",
     "start": "serve dist -p 3000 --cors",
     "type-check": "tsc --noEmit"
   },
@@ -15,7 +15,8 @@
     "esbuild": "^0.25.1",
     "eslint": "^9.0.0",
     "serve": "^14.2.5",
-    "typescript": "^5.8.2"
+    "typescript": "^5.8.2",
+    "watch": "^1.0.2"
   },
   "dependencies": {
     "@cartesi/viem": "^2.0.0-alpha.15",
