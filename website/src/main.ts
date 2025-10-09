@@ -318,7 +318,7 @@ function populateLeaderboardTable(
     if (notice.user !== undefined) {
       user = `${notice.user.slice(0, 6)}...${notice.user.substring(notice.user.length - 4, notice.user.length)}`;
       if (notice.input_index !== undefined) {
-        const replayUrl = `/src/replay?user=${notice.user}&input_index=${notice.input_index}`;
+        const replayUrl = `./replay?user=${notice.user}&input_index=${notice.input_index}`;
         row.setAttribute("data-href", replayUrl);
         row.addEventListener("click", function () {
           const href = this.dataset.href;
