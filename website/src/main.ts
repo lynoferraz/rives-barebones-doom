@@ -6,7 +6,6 @@ import {
   parseAbiParameters,
   WalletClient,
   toBytes,
-  ByteArray,
 } from "viem";
 import { Output } from "@cartesi/viem";
 

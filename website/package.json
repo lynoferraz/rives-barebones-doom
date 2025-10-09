@@ -3,15 +3,18 @@
   "version": "0.0.1",
   "type": "module",
   "scripts": {
-    "build": "node ./build.cjs",
-    "lint": "eslint src/**/*.ts",
+    "build": "node ./build.cjs && cp -r src/public dist && cpx src/*.{html,css,js} dist",
+    "dev": "cpx -wv src/*.{html,css,js} dist & cpx -wv src/public/*.{ico,svg,png,jpg} dist/public & serve dist -p 3000 --cors",
+    "start": "serve dist -p 3000 --cors",
     "type-check": "tsc --noEmit"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "cpx": "^1.2.1",
     "esbuild": "^0.25.1",
     "eslint": "^9.0.0",
+    "serve": "^14.2.5",
     "typescript": "^5.8.2"
   },
   "dependencies": {
