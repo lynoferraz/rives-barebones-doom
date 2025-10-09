@@ -126,7 +126,7 @@ Then build and serve the website:
 cd website
 npm install
 npm run build
-npx serve -p 3000 --cors
+npm run dev
 ```
 
 Access the frontend at `http://localhost:3000`.
