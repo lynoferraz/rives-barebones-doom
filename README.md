@@ -22,7 +22,7 @@ Install Cartesapp:
 ```shell
 python3 -m venv .venv
 . .venv/bin/activate
-pip3 install cartesapp[dev]@git+https://github.com/prototyp3-dev/cartesapp@v1.1.0
+pip3 install cartesapp[dev]@git+https://github.com/prototyp3-dev/cartesapp@v1.1.1
 pip3 install pytest-randomly
 ```
 
@@ -66,7 +66,7 @@ To run the node with the version that was deployed on testnet you should get the
 ```shell
 rm -rf .cartesi
 mkdir -p .cartesi/image
-RIVES_DOOM_VERSION=0.0.2
+RIVES_DOOM_VERSION=0.0.1
 wget -qO- https://github.com/lynoferraz/rives-barebones-doom/releases/download/v${RIVES_DOOM_VERSION}/rives-barebones-doom-snapshot.tar.gz | tar zxf - -C .cartesi/image/
 ```
 

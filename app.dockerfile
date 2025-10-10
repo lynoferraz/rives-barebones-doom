@@ -6,7 +6,7 @@ ARG IMAGE_TAG=3.22.1
 FROM --platform=linux/riscv64 ${IMAGE_NAME}:${IMAGE_TAG} AS builder
 
 # Install build essential
-RUN apk add alpine-sdk clang clang-dev
+RUN apk add alpine-sdk=1.1-r0 clang=20.1.8-r0 clang-dev=20.1.8-r0
 
 # Install guest tools and libcmt
 ARG MACHINE_GUEST_TOOLS_VERSION=0.17.1-r1
