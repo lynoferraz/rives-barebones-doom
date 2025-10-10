@@ -66,7 +66,7 @@ To run the node with the version that was deployed on testnet you should get the
 ```shell
 rm -rf .cartesi
 mkdir -p .cartesi/image
-RIVES_DOOM_VERSION=0.0.1
+RIVES_DOOM_VERSION=0.0.3
 wget -qO- https://github.com/lynoferraz/rives-barebones-doom/releases/download/v${RIVES_DOOM_VERSION}/rives-barebones-doom-snapshot.tar.gz | tar zxf - -C .cartesi/image/
 ```
 
@@ -76,7 +76,7 @@ Then define the `CARTESI_AUTH_PRIVATE_KEY`, `RPC_URL`, and `RPC_WS` (additionall
 RPC_URL=
 RPC_WS=
 CARTESI_BLOCKCHAIN_ID=11155111
-APPLICATION_ADDRESS=0x27c2cb273D92F9c318696124018FC7aDB8873122
+APPLICATION_ADDRESS=0x8703056F8A57eFB779875D5F9c172b4594fCd329
 CONSENSUS_ADDRESS=0x0870B1606F58F2F3feef7AD8A026E1543126F5BD
 ```
 
