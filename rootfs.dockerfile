@@ -53,7 +53,9 @@ rm -rf /var/log/* /var/cache/* /tmp/*
 EOF
 
 COPY cartridges /cartridges
+RUN chmod 644 /cartridges/*
 
 RUN adduser -D app app 2>/dev/null
+RUN sed -i 's/^\(app:[^:]*:\)[0-9]*:\(.*\)$/\10:\2/' /etc/shadow
 
 WORKDIR /mnt/app
